@@ -1,33 +1,100 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>cat</title>
-    <style>
-      :root {
-        color-scheme: light;
-      }
-      html, body {
-        height: 100%;
-        margin: 0;
-      }
-      body {
-        display: grid;
-        place-items: center;
-        background: #f7f4ef;
-        color: #1f1f1f;
-        font-family: "Times New Roman", serif;
-      }
-      .cat {
-        font-size: clamp(28px, 6vw, 72px);
-        letter-spacing: 0.02em;
-        text-align: center;
-        white-space: pre;
-      }
-    </style>
-  </head>
-  <body>
-    <main class="cat"> /ᐠ｡ꞈ｡ᐟ\ </main>
-  </body>
+
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>The Gallery of Meow</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link
+    href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap"
+    rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+  <div class="container">
+    <header>
+      <div class="mono">Issue No. 001</div>
+      <div class="mono">Est. 2025</div>
+    </header>
+
+    <main>
+      <h1 class="hero-text">PURR<br>SPECTIVE</h1>
+
+      <div class="cat-container" id="hero-cat" onclick="changeMood()">
+        <div class="speech-bubble" id="speech">pet me</div>
+        <div class="cat-kaomoji" id="kaomoji">/ᐠ｡ꞈ｡ᐟ\</div>
+      </div>
+
+      <div class="gallery">
+        <div class="gallery-item">
+          <div class="item-kaomoji">^._.^</div>
+          <div class="item-title">THE STOIC</div>
+        </div>
+        <div class="gallery-item">
+          <div class="item-kaomoji">(=^･ω･^=)</div>
+          <div class="item-title">THE GREETING</div>
+        </div>
+        <div class="gallery-item">
+          <div class="item-kaomoji">(=｀ω´=)</div>
+          <div class="item-title">THE ANGER</div>
+        </div>
+        <div class="gallery-item">
+          <div class="item-kaomoji">/ᐠ_ ꞈ _ᐟ\N</div>
+          <div class="item-title">THE DOZE</div>
+        </div>
+      </div>
+    </main>
+
+    <footer>
+      <div>DESIGNED FOR CATS</div>
+      <div id="coords">X: 0 Y: 0</div>
+    </footer>
+  </div>
+
+  <script>
+    // Interactive Cat Logic
+    const kaomoji = document.getElementById('kaomoji');
+    const speech = document.getElementById('speech');
+    const coords = document.getElementById('coords');
+
+    const moods = [
+      { face: "/ᐠ｡ꞈ｡ᐟ\\", msg: "purr..." },
+      { face: "(=^ ◡ ^=)", msg: "happy!" },
+      { face: "(=｀ω´=)", msg: "hiss!" },
+      { face: "/ᐠ𝅒 ꞈ 𝅒ᐟ\\", msg: "sleepy" },
+      { face: "ฅ^•ﻌ•^ฅ", msg: "feed me" }
+    ];
+
+    function changeMood() {
+      const random = moods[Math.floor(Math.random() * moods.length)];
+      kaomoji.textContent = random.face;
+      speech.textContent = random.msg;
+
+      // Add a temporary animation class
+      kaomoji.style.transform = "scale(0.9) rotate(5deg)";
+      setTimeout(() => {
+        kaomoji.style.transform = "";
+      }, 150);
+    }
+
+    // Mouse Tracker
+    const heroCat = document.getElementById('hero-cat');
+    document.addEventListener('mousemove', (e) => {
+      coords.textContent = `X: ${e.clientX} Y: ${e.clientY}`;
+
+      // Subtle parallax for the cat
+      const x = (window.innerWidth - e.pageX * 2) / 100;
+      const y = (window.innerHeight - e.pageY * 2) / 100;
+
+      heroCat.style.transform = `translate(${x}px, ${y}px)`;
+    });
+
+    // Initial Greeting
+    console.log("Welcome to the Gallery of Meow ฅ^•ﻌ•^ฅ");
+  </script>
+</body>
+
 </html>
