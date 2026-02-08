@@ -1,26 +1,14 @@
+import {
+  advanceSecretTrackers,
+  applyMilestones,
+  computeStickerProgress,
+  createDefaultState,
+  mergeStoredState
+} from "./state.js";
+
 export function bootstrapGallery(doc = document, win = window) {
   const storageKey = "gallery-of-meow-state-v2";
-  const totalStickers = 8;
-
-  const defaultState = {
-    treats: 0,
-    laserBest: 0,
-    chaos: false,
-    stickers: {
-      stoic: true,
-      greeting: false,
-      anger: false,
-      doze: false,
-      oracle: false,
-      laser: false,
-      chaos: false,
-      secret: false
-    },
-    secretsFound: {
-      meow: false,
-      konami: false
-    }
-  };
+  const totalStickers = Object.keys(createDefaultState().stickers).length;
 
   const moodDeck = [
     { face: "/ᐠ｡ꞈ｡ᐟ\\", msg: "purr...", unlockAt: 0 },
@@ -42,19 +30,6 @@ export function bootstrapGallery(doc = document, win = window) {
     "The red dot fears your focus.",
     "A polite meow yields unreasonable rewards.",
     "Someone will call you baby in the next hour."
-  ];
-
-  const konami = [
-    "ArrowUp",
-    "ArrowUp",
-    "ArrowDown",
-    "ArrowDown",
-    "ArrowLeft",
-    "ArrowRight",
-    "ArrowLeft",
-    "ArrowRight",
-    "b",
-    "a"
   ];
 
   const kaomoji = doc.getElementById("kaomoji");
@@ -101,33 +76,7 @@ export function bootstrapGallery(doc = document, win = window) {
     return;
   }
 
-  const cloneDefaultState = () => JSON.parse(JSON.stringify(defaultState));
-
-  function loadState() {
-    try {
-      const raw = win.localStorage.getItem(storageKey);
-      if (!raw) {
-        return cloneDefaultState();
-      }
-      const parsed = JSON.parse(raw);
-      return {
-        ...cloneDefaultState(),
-        ...parsed,
-        stickers: {
-          ...defaultState.stickers,
-          ...(parsed.stickers || {})
-        },
-        secretsFound: {
-          ...defaultState.secretsFound,
-          ...(parsed.secretsFound || {})
-        }
-      };
-    } catch {
-      return cloneDefaultState();
-    }
-  }
-
-  const state = loadState();
+  const state = mergeStoredState(win.localStorage.getItem(storageKey));
 
   const laserGame = {
     running: false,
@@ -164,14 +113,16 @@ export function bootstrapGallery(doc = document, win = window) {
   }
 
   function checkMilestones() {
-    if (state.treats >= 10) {
-      unlockSticker("greeting", "10 treats! Greeting unlocked.");
+    const newlyUnlocked = applyMilestones(state);
+
+    if (newlyUnlocked.includes("greeting")) {
+      speech.textContent = "10 treats! Greeting unlocked.";
     }
-    if (state.treats >= 25) {
-      unlockSticker("anger", "25 treats! Anger unlocked.");
+    if (newlyUnlocked.includes("anger")) {
+      speech.textContent = "25 treats! Anger unlocked.";
     }
-    if (state.treats >= 50) {
-      unlockSticker("doze", "50 treats! Doze unlocked.");
+    if (newlyUnlocked.includes("doze")) {
+      speech.textContent = "50 treats! Doze unlocked.";
     }
   }
 
@@ -188,9 +139,7 @@ export function bootstrapGallery(doc = document, win = window) {
   function updateHud() {
     treatCount.textContent = String(state.treats);
     laserBest.textContent = String(state.laserBest);
-
-    const unlocked = Object.values(state.stickers).filter(Boolean).length;
-    stickerProgress.textContent = `${Math.round((unlocked / totalStickers) * 100)}%`;
+    stickerProgress.textContent = `${computeStickerProgress(state, totalStickers)}%`;
 
     doc.body.classList.toggle("chaos-mode", state.chaos);
     chaosBtn.setAttribute("aria-pressed", state.chaos ? "true" : "false");
@@ -359,23 +308,23 @@ export function bootstrapGallery(doc = document, win = window) {
   });
 
   doc.addEventListener("keydown", (event) => {
-    const key = event.key;
-    if (key.length === 1) {
-      typedBuffer = (typedBuffer + key.toLowerCase()).slice(-12);
-      if (typedBuffer.includes("meow")) {
-        typedBuffer = "";
-        unlockSecret("meow", "Secret phrase accepted.");
-      }
+    const progress = advanceSecretTrackers(
+      {
+        typedBuffer,
+        konamiIndex
+      },
+      event.key
+    );
+
+    typedBuffer = progress.typedBuffer;
+    konamiIndex = progress.konamiIndex;
+
+    if (progress.meowMatched) {
+      unlockSecret("meow", "Secret phrase accepted.");
     }
 
-    if (key.toLowerCase() === konami[konamiIndex].toLowerCase()) {
-      konamiIndex += 1;
-      if (konamiIndex === konami.length) {
-        konamiIndex = 0;
-        unlockSecret("konami", "Konami Cat awakened.");
-      }
-    } else {
-      konamiIndex = key.toLowerCase() === konami[0].toLowerCase() ? 1 : 0;
+    if (progress.konamiMatched) {
+      unlockSecret("konami", "Konami Cat awakened.");
     }
   });
 
