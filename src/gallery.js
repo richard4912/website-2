@@ -300,12 +300,16 @@ export function bootstrapGallery(doc = document, win = window) {
     placeLaserDot();
   });
 
-  doc.addEventListener("mousemove", (event) => {
-    coords.textContent = `X: ${event.clientX} Y: ${event.clientY}`;
-    const x = (win.innerWidth - event.pageX * 2) / 100;
-    const y = (win.innerHeight - event.pageY * 2) / 100;
-    heroCat.style.transform = `translate(${x}px, ${y}px)`;
-  });
+  if (win.matchMedia("(pointer: fine)").matches) {
+    doc.addEventListener("mousemove", (event) => {
+      coords.textContent = `X: ${event.clientX} Y: ${event.clientY}`;
+      const x = (win.innerWidth - event.pageX * 2) / 100;
+      const y = (win.innerHeight - event.pageY * 2) / 100;
+      heroCat.style.transform = `translate(${x}px, ${y}px)`;
+    });
+  } else {
+    coords.textContent = "X: touch Y: touch";
+  }
 
   doc.addEventListener("keydown", (event) => {
     const progress = advanceSecretTrackers(
