@@ -23,80 +23,87 @@
     <main>
       <h1 class="hero-text">PURR<br>SPECTIVE</h1>
 
-      <section class="status-panel mono">
-        <div>Treats: <span id="treat-count">0</span></div>
-        <div>Laser Best: <span id="laser-best">0</span></div>
-        <div>Album: <span id="sticker-progress">0%</span></div>
-      </section>
-
-      <div class="cat-container" id="hero-cat" role="button" tabindex="0" aria-label="Pet the cat">
-        <div class="speech-bubble" id="speech">pet me</div>
-        <div class="cat-kaomoji" id="kaomoji">/ᐠ｡ꞈ｡ᐟ\</div>
+      <div class="cat-container">
+        <button id="hero-cat" aria-label="Pet the cat" aria-describedby="speech">
+          <span class="cat-kaomoji" id="kaomoji" aria-hidden="true">/ᐠ｡ꞈ｡ᐟ\</span>
+        </button>
+        <p class="speech-bubble" id="speech" role="status">you may pet the art.</p>
       </div>
 
       <section class="control-row">
-        <button id="fortune-btn" class="mono">Consult Oracle Cat</button>
-        <button id="laser-btn" class="mono">Start Laser Dash (5s)</button>
-        <button id="chaos-btn" class="mono" aria-pressed="false">Chaos Mode: Off</button>
+        <button id="fortune-btn" aria-expanded="false" aria-controls="fortune-box">Ask the oracle</button>
+        <button id="laser-btn" aria-expanded="false" aria-controls="laser-game">Chase a dot</button>
+        <button id="chaos-btn" aria-pressed="false">Cause a little trouble</button>
       </section>
 
-      <div id="fortune-box" class="fortune-box mono">
-        The oracle cat waits for your question.
+      <div id="fortune-box" class="fortune-box" hidden>
+        <p id="fortune-text" role="status">The oracle cat waits for your question.</p>
+        <button id="fortune-close" class="close-button" aria-label="Close the fortune">×</button>
       </div>
 
-      <section class="laser-game">
+      <section class="laser-game" id="laser-game" aria-label="Chase a dot" hidden>
         <div class="laser-head mono">
-          <span id="laser-status">Ready for laser dash.</span>
+          <span id="laser-status" role="status">Ready for laser dash.</span>
           <span id="laser-score">Score: 0</span>
           <span id="laser-time">Time: 5.0s</span>
+          <button id="laser-close" class="close-button" aria-label="Put the laser away">×</button>
         </div>
         <div id="laser-arena" class="laser-arena" aria-label="Laser dot arena">
-          <div id="laser-dot" class="laser-dot" hidden></div>
+          <button id="laser-dot" class="laser-dot" aria-label="Catch the dot" hidden></button>
         </div>
       </section>
 
-      <section class="gallery" id="sticker-gallery">
+      <details class="album">
+        <summary>The permanent collection <span aria-hidden="true">↗</span></summary>
+        <p class="album-note">A few residents. Some take a while to come out.</p>
+        <section class="status-panel mono" aria-label="Your discoveries">
+          <div>Treats: <span id="treat-count">0</span></div>
+          <div>Laser best: <span id="laser-best">0</span></div>
+          <div>Discovered: <span id="sticker-progress">0%</span></div>
+        </section>
+        <section class="gallery" id="sticker-gallery" aria-label="The permanent collection">
         <article class="gallery-item" data-sticker="stoic">
           <div class="item-kaomoji">^._.^</div>
           <div class="item-title">THE STOIC</div>
-          <div class="item-hint">Starter sticker</div>
+          <div class="item-hint">Keyboard on screen. Artist indifferent.</div>
         </article>
         <article class="gallery-item" data-sticker="greeting">
           <div class="item-kaomoji">(=^･ω･^=)</div>
           <div class="item-title">THE GREETING</div>
-          <div class="item-hint">Unlock: 10 treats</div>
+          <div class="item-hint">A study in cupboard love.</div>
         </article>
         <article class="gallery-item" data-sticker="anger">
           <div class="item-kaomoji">(=｀ω´=)</div>
           <div class="item-title">THE ANGER</div>
-          <div class="item-hint">Unlock: 25 treats</div>
+          <div class="item-hint">Affection, in excess.</div>
         </article>
         <article class="gallery-item" data-sticker="doze">
           <div class="item-kaomoji">/ᐠ_ ꞈ _ᐟ\</div>
           <div class="item-title">THE DOZE</div>
-          <div class="item-hint">Unlock: 50 treats</div>
+          <div class="item-hint">The artist is unavailable for comment.</div>
         </article>
         <article class="gallery-item" data-sticker="oracle">
           <div class="item-kaomoji">(=^･ｪ･^=)</div>
           <div class="item-title">THE ORACLE</div>
-          <div class="item-hint">Unlock: ask for a fortune</div>
+          <div class="item-hint">Knows all. Will say very little.</div>
         </article>
         <article class="gallery-item" data-sticker="laser">
           <div class="item-kaomoji">●</div>
           <div class="item-title">THE CHASER</div>
-          <div class="item-hint">Unlock: score 6 in Laser Dash</div>
+          <div class="item-hint">An ongoing dispute with a red dot.</div>
         </article>
         <article class="gallery-item" data-sticker="chaos">
           <div class="item-kaomoji">(ﾉ◕ヮ◕)ﾉ*:･ﾟ✧</div>
           <div class="item-title">THE CHAOS</div>
-          <div class="item-hint">Unlock: toggle Chaos Mode</div>
+          <div class="item-hint">Briefly left unsupervised.</div>
         </article>
         <article class="gallery-item" data-sticker="secret">
           <div class="item-kaomoji">(=ↀωↀ=)</div>
           <div class="item-title">THE SECRET</div>
-          <div class="item-hint">Unlock: hidden keyboard ritual</div>
+          <div class="item-hint">Provenance unknown. Try speaking cat.</div>
         </article>
-      </section>
+        </section>
+      </details>
 
       <div id="secret-banner" class="secret-banner" hidden></div>
       <div id="neon-cat" class="neon-cat" hidden>(^ↀᴥↀ^)</div>
