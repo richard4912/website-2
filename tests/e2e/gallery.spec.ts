@@ -1,4 +1,72 @@
-import { expect, test } from "@playwright/test";
+import { expect, test, type Page } from "@playwright/test";
+
+// The hero deliberately overlaps a portrait, a stamp and a wordmark. Element boxes are
+// far taller than uppercase ink, so asserting on them would be both wrong and
+// unsatisfiable. These are Playfair Display's metrics, used to recover the cap band
+// from the range rects that getClientRects returns for the actual rendered text.
+const CAP_HEIGHT_EM = 0.7;
+const DESCENDER_EM = 0.271;
+
+type Box = { left: number; top: number; right: number; bottom: number };
+
+function intersects(first: Box, second: Box) {
+  return (
+    first.left < second.right &&
+    first.right > second.left &&
+    first.top < second.bottom &&
+    first.bottom > second.top
+  );
+}
+
+async function heroGeometry(page: Page) {
+  return page.evaluate(
+    ([capHeightEm, descenderEm]) => {
+      const box = (selector: string): Box => {
+        const bounds = document.querySelector(selector)!.getBoundingClientRect();
+        return {
+          left: bounds.left,
+          top: bounds.top,
+          right: bounds.right,
+          bottom: bounds.bottom
+        };
+      };
+
+      const title = document.querySelector(".hero-title")!;
+      const fontSize = Number.parseFloat(window.getComputedStyle(title).fontSize);
+      const capBands: Box[] = [];
+      for (const node of Array.from(title.childNodes)) {
+        if (node.nodeType !== Node.TEXT_NODE && node.nodeName !== "SPAN") continue;
+        const range = document.createRange();
+        range.selectNodeContents(node);
+        for (const rect of Array.from(range.getClientRects())) {
+          if (rect.width <= 1) continue;
+          const baseline = rect.bottom - descenderEm * fontSize;
+          capBands.push({
+            left: rect.left,
+            top: baseline - capHeightEm * fontSize,
+            right: rect.right,
+            bottom: baseline
+          });
+        }
+      }
+
+      return {
+        capBands,
+        card: box(".agent-card"),
+        bird: box(".shimaenaga-button"),
+        birdLabel: box(".shimaenaga-label"),
+        portrait: box(".portrait-frame"),
+        portraitImage: box(".hero-cat img"),
+        stamp: box(".supervision-stamp"),
+        speech: box(".speech-bubble"),
+        dossier: box(".dossier"),
+        scrollWidth: document.documentElement.scrollWidth,
+        clientWidth: document.documentElement.clientWidth
+      };
+    },
+    [CAP_HEIGHT_EM, DESCENDER_EM] as const
+  );
+}
 
 async function openFreshPage(page) {
   await page.goto("/");
@@ -62,6 +130,76 @@ test("Agent 002 briefly takes over the dossier", async ({ page }) => {
   await expect(page.locator("#speech")).toHaveText("a second opinion has arrived.");
 });
 
+test("Agent 002 escalates across repeat greetings", async ({ page }) => {
+  await openFreshPage(page);
+
+  const bird = page.locator("#shimaenaga");
+  await bird.click();
+  await expect(page.locator("#speech")).toHaveText("a second opinion has arrived.");
+
+  for (let greet = 0; greet < 3; greet += 1) {
+    await bird.click();
+  }
+
+  await expect(page.locator("#speech")).toHaveText("agent 002 declines to elaborate.");
+  await expect(page.locator("#objective")).toHaveText("Maintain the round one.");
+});
+
+test("Agent 002 escalation survives a reload", async ({ page }) => {
+  await openFreshPage(page);
+
+  const bird = page.locator("#shimaenaga");
+  for (let greet = 0; greet < 3; greet += 1) {
+    await bird.click();
+  }
+
+  await page.reload();
+  await bird.click();
+
+  await expect(page.locator("#speech")).toHaveText("agent 002 declines to elaborate.");
+});
+
+test("the two agents notice each other when both are engaged", async ({ page }) => {
+  await openFreshPage(page);
+
+  await page.locator("#hero-cat").click();
+  await page.locator("#shimaenaga").click();
+
+  await expect(page.locator("#speech")).toHaveText("both agents accounted for.");
+  await expect(page.locator("#objective")).toHaveText("Remain a set.");
+
+  await page.locator("#hero-cat").click();
+
+  await expect(page.locator("#speech")).toHaveText("the small one is watching you do that.");
+  await expect(page.locator("#objective")).toHaveText("Operate as a pair.");
+});
+
+// Both the pointer drift and the pet squash animate the kaomoji. When they shared
+// style.transform the squash was cancelled by the next mouse move, so petting the cat
+// had no visible response on desktop at all.
+test("pointer drift does not cancel the pet squash", async ({ page }) => {
+  await openFreshPage(page);
+
+  const channels = await page.evaluate(async () => {
+    const kaomoji = document.getElementById("kaomoji")!;
+    document.getElementById("hero-cat")!.click();
+    const squashAfterPet = kaomoji.style.getPropertyValue("--squash");
+    document.dispatchEvent(
+      new MouseEvent("mousemove", { clientX: 700, clientY: 400, bubbles: true })
+    );
+    await new Promise((resolve) => requestAnimationFrame(resolve));
+    return {
+      squashAfterPet,
+      squashAfterDrift: kaomoji.style.getPropertyValue("--squash"),
+      driftAfterDrift: kaomoji.style.getPropertyValue("--drift-x")
+    };
+  });
+
+  expect(channels.squashAfterPet).toBe("0.96");
+  expect(channels.squashAfterDrift).toBe("0.96");
+  expect(channels.driftAfterDrift).not.toBe("");
+});
+
 test("petting cat increments treats and progresses from pleased to asleep", async ({ page }) => {
   await openFreshPage(page);
 
@@ -113,6 +251,31 @@ test("chaos toggle updates aria and body class", async ({ page }) => {
 
   await expect(chaosButton).toHaveAttribute("aria-pressed", "true");
   await expect(page.locator("body")).toHaveClass(/chaos-mode/);
+});
+
+test("authorizing an incident fires a transient before settling into the skin", async ({ page }) => {
+  await openFreshPage(page);
+
+  await page.locator("#chaos-btn").click();
+  await expect(page.locator("body")).toHaveClass(/chaos-igniting/);
+
+  // The transient clears; the persistent skin does not.
+  await expect(page.locator("body")).not.toHaveClass(/chaos-igniting/, { timeout: 3000 });
+  await expect(page.locator("body")).toHaveClass(/chaos-mode/);
+
+  await page.locator("#chaos-btn").click();
+  await expect(page.locator("body")).not.toHaveClass(/chaos-mode/);
+});
+
+test("the roster door reports a count rather than a rounded percentage", async ({ page }) => {
+  await openFreshPage(page);
+
+  await expect(page.locator("#sticker-progress")).toHaveText("1 OF 8");
+  await expect(page.locator(".summary-meta")).toContainText("ON FILE");
+
+  await page.locator("#fortune-btn").click();
+
+  await expect(page.locator("#sticker-progress")).toHaveText("2 OF 8");
 });
 
 test("laser game starts and ends with button re-enabled", async ({ page }) => {
@@ -190,14 +353,16 @@ test("laser supports keyboard play and can be put away mid-game", async ({ page 
   await expect(page.locator("#laser-score")).toHaveText("Score: 0");
 });
 
-test("locked roster entries conceal their identity until discovered", async ({ page }) => {
+test("locked roster entries hide their name but advertise their specialty", async ({ page }) => {
   await openFreshPage(page);
   await page.locator(".roster summary").click();
 
   const oracleCard = page.locator('[data-sticker="oracle"]');
   await expect(oracleCard.locator(".item-locked")).toBeVisible();
   await expect(oracleCard.locator(".item-title")).toBeHidden();
-  await expect(oracleCard.locator(".item-specialty")).toBeHidden();
+  // The specialty is the tease. Concealing it too left the grid blank.
+  await expect(oracleCard.locator(".item-specialty")).toBeVisible();
+  await expect(oracleCard.locator(".item-specialty")).toHaveText("SPECULATIVE FORECASTING");
 
   await page.locator("#fortune-btn").click();
   await expect(oracleCard.locator(".item-locked")).toBeHidden();
@@ -239,60 +404,53 @@ test("reduced motion suppresses decorative chaos animation", async ({ page }) =>
   expect(animationDurationSeconds).toBeLessThanOrEqual(0.00001);
 });
 
-test("wide editorial graphics remain inside their regions", async ({ page }) => {
-  await page.setViewportSize({ width: 2032, height: 1116 });
-  await openFreshPage(page);
+// The hero collision that shipped was invisible to a scrollWidth check: overlap INSIDE
+// the viewport passes it. This ran only at 2032px, which is the one width where the
+// composition had room to spare.
+const heroViewports = [
+  { width: 320, height: 844 },
+  { width: 360, height: 844 },
+  { width: 390, height: 844 },
+  { width: 430, height: 932 },
+  { width: 600, height: 900 },
+  { width: 620, height: 900 },
+  { width: 768, height: 1024 },
+  { width: 900, height: 1024 },
+  { width: 1024, height: 900 },
+  { width: 1440, height: 900 },
+  { width: 2032, height: 1116 }
+];
 
-  const geometry = await page.evaluate(() => {
-    const rect = (selector: string) => {
-      const bounds = document.querySelector(selector)!.getBoundingClientRect();
-      return {
-        left: bounds.left,
-        top: bounds.top,
-        right: bounds.right,
-        bottom: bounds.bottom
-      };
-    };
-    const overlaps = (first, second) =>
-      first.left < second.right &&
-      first.right > second.left &&
-      first.top < second.bottom &&
-      first.bottom > second.top;
+for (const viewport of heroViewports) {
+  test(`hero composition survives ${viewport.width}px`, async ({ page }) => {
+    await page.setViewportSize(viewport);
+    await openFreshPage(page);
 
-    const title = rect(".hero-title");
-    const portrait = rect(".portrait-frame");
-    const image = rect(".hero-cat img");
-    const speech = rect(".speech-bubble");
-    const dossier = rect(".dossier");
-    const bird = rect(".shimaenaga-button");
-    const birdImage = rect(".shimaenaga-button img");
+    const g = await heroGeometry(page);
 
-    return {
-      titlePortraitOverlap: overlaps(title, portrait),
-      speechDossierOverlap: overlaps(speech, dossier),
-      imageInsidePortrait:
-        image.left >= portrait.left &&
-        image.top >= portrait.top &&
-        image.right <= portrait.right &&
-        image.bottom <= portrait.bottom,
-      birdInsideViewport:
-        bird.left >= 0 &&
-        bird.top >= 0 &&
-        bird.right <= document.documentElement.clientWidth,
-      birdImageInsideButton:
-        birdImage.left >= bird.left &&
-        birdImage.top >= bird.top &&
-        birdImage.right <= bird.right &&
-        birdImage.bottom <= bird.bottom,
-      scrollWidth: document.documentElement.scrollWidth,
-      clientWidth: document.documentElement.clientWidth
-    };
+    expect(g.capBands.length).toBeGreaterThan(0);
+
+    // The wordmark is the name of the site. Collage may overlap whitespace around it,
+    // never the letterforms themselves.
+    for (const band of g.capBands) {
+      expect(intersects(band, g.card), "wordmark ink under the portrait").toBe(false);
+      expect(intersects(band, g.bird), "wordmark ink under Agent 002").toBe(false);
+    }
+
+    // SUPERVISION: ABSENT is short enough to be destroyed by a few px of overlap.
+    expect(intersects(g.stamp, g.card), "stamp under the portrait").toBe(false);
+    expect(intersects(g.stamp, g.bird), "stamp under Agent 002").toBe(false);
+
+    expect(intersects(g.speech, g.dossier)).toBe(false);
+
+    expect(g.portraitImage.left).toBeGreaterThanOrEqual(g.portrait.left - 1);
+    expect(g.portraitImage.right).toBeLessThanOrEqual(g.portrait.right + 1);
+
+    expect(g.bird.left).toBeGreaterThanOrEqual(0);
+    expect(g.bird.top).toBeGreaterThanOrEqual(0);
+    expect(g.bird.right).toBeLessThanOrEqual(g.clientWidth);
+    expect(g.birdLabel.right).toBeLessThanOrEqual(g.clientWidth);
+
+    expect(g.scrollWidth).toBe(g.clientWidth);
   });
-
-  expect(geometry.titlePortraitOverlap).toBe(false);
-  expect(geometry.speechDossierOverlap).toBe(false);
-  expect(geometry.imageInsidePortrait).toBe(true);
-  expect(geometry.birdInsideViewport).toBe(true);
-  expect(geometry.birdImageInsideButton).toBe(true);
-  expect(geometry.scrollWidth).toBe(geometry.clientWidth);
-});
+}

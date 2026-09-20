@@ -264,6 +264,12 @@ main { min-width: 0; }
   text-align: center;
   white-space: nowrap;
   box-shadow: 0.25rem 0.25rem 0 var(--ink);
+  /* Pointer drift and the pet squash both animate this element. They compose
+     through separate custom properties so neither clobbers the other. */
+  transform:
+    translate(var(--drift-x, 0px), var(--drift-y, 0px))
+    scale(var(--squash, 1))
+    rotate(var(--tilt, 0deg));
 }
 
 .speech-bubble {
@@ -360,11 +366,18 @@ main { min-width: 0; }
   font-style: italic;
   line-height: 1.25;
   text-align: left;
+  /* A faint recessed field so these read as pressable rather than as more
+     display-only cells like the dossier row directly above them. */
+  background: var(--paper-deep);
   transition: background 150ms ease, color 150ms ease;
 }
 
 .control-row button + button { border-left: 1px solid var(--line); }
 .control-row button:hover { background: var(--ink); color: var(--paper); }
+/* Chaos is a toggle. It set aria-pressed but looked identical when armed. */
+.control-row button[aria-pressed="true"] { background: var(--ink); color: var(--paper); }
+.control-row button:hover .control-index,
+.control-row button[aria-pressed="true"] .control-index { color: var(--acid); }
 .control-index { color: var(--coral); font-size: 0.75rem; font-style: normal; font-weight: 700; }
 
 .fortune-box, .laser-game {
@@ -374,6 +387,9 @@ main { min-width: 0; }
   background: rgba(243, 240, 231, 0.96);
   box-shadow: 0.55rem 0.55rem 0 var(--coral);
 }
+
+/* The panel hugs the arena rather than floating a small field in a wide box. */
+.laser-game { width: min(100%, 40rem); }
 
 .fortune-box {
   display: flex;
@@ -393,17 +409,21 @@ main { min-width: 0; }
   flex-wrap: wrap;
   gap: 0.65rem 1.2rem;
   min-height: 3.25rem;
+  border-bottom: 1px solid var(--line-strong);
   padding: 0 0.35rem 0 1rem;
   font-size: 0.78rem;
   font-weight: 700;
 }
 #laser-status { flex: 1 1 16rem; }
 .laser-head .close-button { margin-left: auto; }
+/* The rule above belongs to .laser-head so the arena can be narrower than the
+   panel without shortening it. A full-panel-width arena is not a game. */
 .laser-arena {
   position: relative;
-  width: 100%;
+  width: min(100%, 37.5rem);
   height: 190px;
-  border-top: 1px solid var(--line-strong);
+  margin: 0 auto;
+  border-inline: 1px solid var(--line);
   overflow: hidden;
   background:
     radial-gradient(circle at center, transparent 0 2px, rgba(23, 23, 23, 0.08) 2px 3px, transparent 3px),
@@ -420,7 +440,7 @@ main { min-width: 0; }
   content: "";
 }
 
-.roster { margin: clamp(3.5rem, 7vw, 6.5rem) 0 4rem; border-top: 4px solid var(--ink); }
+.roster { margin: clamp(2rem, 3.5vw, 3.25rem) 0 4rem; border-top: 4px solid var(--ink); }
 .roster > summary {
   display: flex;
   align-items: baseline;
@@ -433,9 +453,16 @@ main { min-width: 0; }
   line-height: 1;
 }
 .roster > summary::-webkit-details-marker { display: none; }
-.summary-meta { font-size: 0.75rem; font-weight: 700; letter-spacing: 0.06em; white-space: nowrap; }
-.summary-meta span:last-child { display: inline-block; margin-left: 0.6rem; transition: transform 180ms ease; }
-.roster[open] .summary-meta span:last-child { transform: rotate(90deg); }
+/* The roster is the only door on the page. At rest it has to read as a door, not
+   as a section heading sitting above the footer. */
+.summary-meta { color: var(--coral); font-size: 0.75rem; font-weight: 700; letter-spacing: 0.06em; white-space: nowrap; }
+.summary-caret { display: inline-block; margin-left: 0.6rem; transition: transform 180ms ease; }
+.roster[open] .summary-caret { transform: rotate(90deg); }
+.roster > summary > span:first-child {
+  border-bottom: 2px solid transparent;
+  transition: border-color 150ms ease;
+}
+.roster > summary:hover > span:first-child { border-bottom-color: var(--coral); }
 
 .roster-intro {
   display: flex;
@@ -456,7 +483,11 @@ main { min-width: 0; }
   margin-top: 1.5rem;
 }
 
+/* Explicit rows so the number / glyph / status / specialty bands line up across all
+   eight cards regardless of lock state. The hint absorbs the slack at the bottom. */
 .gallery-item {
+  display: grid;
+  grid-template-rows: auto auto auto auto 1fr;
   min-height: 18rem;
   border-right: 1px solid var(--line);
   border-bottom: 1px solid var(--line);
@@ -465,6 +496,11 @@ main { min-width: 0; }
   text-align: center;
   overflow: hidden;
 }
+.item-number { grid-row: 1; }
+.item-kaomoji { grid-row: 2; }
+.item-locked, .item-title { grid-row: 3; }
+.item-specialty { grid-row: 4; }
+.item-hint { grid-row: 5; }
 .gallery-item:nth-child(-n + 4) { border-top: 1px solid var(--line); }
 .item-number { color: var(--muted); font-size: 0.75rem; text-align: left; }
 .item-kaomoji {
@@ -487,7 +523,10 @@ main { min-width: 0; }
   transform: scale(0.84);
   user-select: none;
 }
-.gallery-item.locked .item-title, .gallery-item.locked .item-specialty { display: none; }
+/* Locked cards keep their name secret but show what they do. The specialty lines are
+   the half worth reading, and concealing both left the grid blank. */
+.gallery-item.locked .item-title { display: none; }
+.gallery-item.locked .item-specialty { color: var(--muted); }
 .gallery-item.locked .item-locked { display: block; }
 .gallery-item.just-unlocked { animation: stamp-in 480ms cubic-bezier(0.2, 0.9, 0.3, 1.25); }
 
@@ -632,6 +671,31 @@ main { min-width: 0; }
   50% { transform: translate(0.02em, -0.015em); }
 }
 
+/* The incident itself, as opposed to its aftermath. A single wash rather than a
+   strobe, and fixed-position so it cannot contribute to document overflow. */
+.chaos-igniting::after {
+  position: fixed;
+  inset: 0;
+  z-index: 15;
+  pointer-events: none;
+  content: "";
+  background: var(--coral);
+  animation: incident-wash 780ms ease-out forwards;
+}
+
+@keyframes incident-wash {
+  0% { opacity: 0.42; }
+  35% { opacity: 0.16; }
+  100% { opacity: 0; }
+}
+
+.chaos-igniting .site-header { animation: incident-alarm 300ms steps(1, end) 2; }
+
+@keyframes incident-alarm {
+  0%, 49% { background: var(--coral); color: var(--paper); }
+  50%, 100% { background: transparent; }
+}
+
 @media (max-width: 920px) {
   .hero {
     grid-template-columns: minmax(0, 1fr) minmax(15rem, 0.65fr);
@@ -639,7 +703,11 @@ main { min-width: 0; }
     min-height: 0;
     padding-top: 3rem;
   }
-  .hero-title { font-size: clamp(5.2rem, 15vw, 8.7rem); }
+  /* 15vw let the title's ink run past its own grid track and under the portrait,
+     which paints above it. 13.5vw keeps the wordmark inside column one. */
+  /* The lower clamp bound, not the vw term, is what binds just above 600px, where the
+     portrait column claims its 15rem minimum and squeezes column one hardest. */
+  .hero-title { font-size: clamp(4.2rem, 12vw, 8.7rem); }
   .agent-card { grid-column: 2; width: min(100%, 19rem); margin: 0; }
   .dossier { grid-column: 1 / -1; grid-row: 2; width: 100%; margin-top: 2rem; }
   .dossier dl { display: grid; grid-template-columns: repeat(3, 1fr); }
@@ -660,11 +728,24 @@ main { min-width: 0; }
   .eyebrow { margin-bottom: 0.8rem; font-size: 0.75rem; }
   .hero-title { font-size: clamp(4.7rem, 23vw, 7rem); line-height: 0.73; }
   .supervision-stamp { margin: 1.15rem 0 0 0.2rem; font-size: 0.75rem; }
-  .agent-card { width: min(59vw, 14.8rem); margin: -5.3rem 0 0 auto; transform: rotate(1deg); }
-  .shimaenaga-button { top: -1rem; right: -0.15rem; width: 4.85rem; }
-  .shimaenaga-label { bottom: -0.05rem; font-size: 0.75rem; }
+  /* The collage overlap moves off the wordmark and onto the stamp row: the portrait
+     sits beside SUPERVISION: ABSENT rather than across SPECTIVE. At this width the
+     title and a usable portrait cannot share a line without destroying one of them. */
+  /* The calc term is the guard that keeps the portrait clear of SUPERVISION: ABSENT,
+     which is a fixed pixel width. It only binds in the narrow band where it matters. */
+  .agent-card {
+    width: min(43vw, 11rem, calc(100vw - 14.5rem));
+    margin: -2.6rem 0 0 auto;
+    transform: rotate(1deg);
+  }
+  /* The label is a fixed-ish pixel width, so below ~600px it grew wider than the bird
+     and covered it. Shrink the tag and drop it clear of the body. */
+  /* Sized against the card rather than the root, so the bird stays in proportion to
+     the portrait it perches on instead of swallowing it at the narrowest widths. */
+  .shimaenaga-button { top: -0.3rem; right: -0.15rem; width: min(4.8rem, 42%); }
+  .shimaenaga-label { bottom: -0.5rem; padding: 0.15rem 0.3rem; font-size: 0.65rem; }
   .portrait-frame { box-shadow: 0.5rem 0.5rem 0 var(--teal); }
-  .portrait-index { top: 0.65rem; left: 0.7rem; font-size: 0.75rem; }
+  .portrait-index { top: 0.65rem; left: 0.7rem; padding: 0.22rem 0.35rem; font-size: 0.62rem; }
   .cat-kaomoji { right: 0.45rem; bottom: 0.45rem; min-width: 4.4rem; font-size: 0.88rem; }
   .speech-bubble { margin-top: 0.8rem; font-size: 0.875rem; }
 
@@ -712,9 +793,17 @@ main { min-width: 0; }
   .recruiting-copy p, .recruiting-copy li { font-size: 1rem; line-height: 1.55; }
 }
 
-@media (max-width: 370px) {
-  .hero-title { font-size: 4.3rem; }
-  .agent-card { margin-top: -4.6rem; }
+/* Below ~375px there is no room for a collage. Title, stamp and portrait stack
+   cleanly, and the surrounding rhythm tightens to keep the tool bay on first screen. */
+@media (max-width: 375px) {
+  .hero { padding: 0.5rem 0 0.4rem; }
+  .eyebrow { margin-bottom: 0.5rem; }
+  .hero-title { font-size: 3.9rem; }
+  .supervision-stamp { margin: 0.7rem 0 0 0.2rem; font-size: 0.7rem; }
+  .agent-card { width: min(52vw, 11rem); margin-top: 0.7rem; }
+  .shimaenaga-button { top: -1.5rem; width: min(4.6rem, 44%); }
+  .speech-bubble { margin-top: 0.45rem; }
+  .dossier { margin-top: 0.9rem; }
 }
 
 @media (prefers-reduced-motion: reduce) {

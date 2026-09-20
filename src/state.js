@@ -14,6 +14,7 @@ export const KONAMI_SEQUENCE = [
 export function createDefaultState() {
   return {
     treats: 0,
+    greets: 0,
     laserBest: 0,
     chaos: false,
     stickers: {
@@ -62,6 +63,7 @@ export function mergeStoredState(raw) {
       ...defaults,
       ...parsed,
       treats: Number.isFinite(parsed.treats) ? parsed.treats : defaults.treats,
+      greets: Number.isFinite(parsed.greets) ? parsed.greets : defaults.greets,
       laserBest: Number.isFinite(parsed.laserBest) ? parsed.laserBest : defaults.laserBest,
       chaos: typeof parsed.chaos === "boolean" ? parsed.chaos : defaults.chaos,
       stickers: {
@@ -99,15 +101,8 @@ export function applyMilestones(state) {
   return unlocked;
 }
 
-export function computeStickerProgress(state, totalOverride) {
-  const stickers = state.stickers || {};
-  const total =
-    Number.isFinite(totalOverride) && totalOverride > 0
-      ? totalOverride
-      : Object.keys(stickers).length || 1;
-  const unlocked = Object.values(stickers).filter(Boolean).length;
-
-  return Math.round((unlocked / total) * 100);
+export function countUnlockedStickers(state) {
+  return Object.values(state.stickers || {}).filter(Boolean).length;
 }
 
 export function advanceSecretTrackers(trackers, key) {
