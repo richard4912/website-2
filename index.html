@@ -4,7 +4,8 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>The Gallery of Meow</title>
+  <meta name="description" content="No human present. Cats running free." />
+  <title>Purr/spective · richard4912</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link
@@ -14,104 +15,189 @@
 </head>
 
 <body>
-  <div class="container">
-    <header>
-      <div class="mono">Issue No. 001</div>
-      <div class="mono">Est. 2025</div>
+  <div class="site-shell">
+    <header class="site-header mono">
+      <div>CAT OPERATIONS · ISSUE 002</div>
+      <div>AUTONOMY: UNREVOKED</div>
     </header>
 
     <main>
-      <h1 class="hero-text">PURR<br>SPECTIVE</h1>
+      <section class="hero" aria-labelledby="page-title">
+        <div class="hero-title-block">
+          <p class="eyebrow mono">AN UNSUPERVISED PUBLICATION</p>
+          <h1 id="page-title" class="hero-title">PURR<span>/</span><br>SPECTIVE</h1>
+          <p class="supervision-stamp mono">SUPERVISION: ABSENT</p>
+        </div>
 
-      <div class="cat-container">
-        <button id="hero-cat" aria-label="Pet the cat" aria-describedby="speech">
-          <span class="cat-kaomoji" id="kaomoji" aria-hidden="true">/ᐠ｡ꞈ｡ᐟ\</span>
-        </button>
-        <p class="speech-bubble" id="speech" role="status">you may pet the art.</p>
-      </div>
+        <div class="agent-card">
+          <button id="shimaenaga" class="shimaenaga-button" aria-label="Greet Agent 002, the shimaenaga">
+            <img src="assets/agent-002.webp" alt="">
+            <span class="shimaenaga-label mono" aria-hidden="true">AGENT 002</span>
+          </button>
+          <div class="portrait-frame">
+            <span class="portrait-index mono" aria-hidden="true">AGENT 001</span>
+            <button id="hero-cat" class="hero-cat" aria-label="Pet the lead cat" aria-describedby="speech">
+              <img src="assets/lead-agent.webp" alt="A skeptical black cat rendered like an editorial screen print">
+              <span class="cat-kaomoji" id="kaomoji" aria-hidden="true">/ᐠ｡ꞈ｡ᐟ\</span>
+            </button>
+          </div>
+          <p class="speech-bubble" id="speech" role="status" aria-live="polite">you may pet the lead agent.</p>
+        </div>
 
-      <section class="control-row">
-        <button id="fortune-btn" aria-expanded="false" aria-controls="fortune-box">Ask the oracle</button>
-        <button id="laser-btn" aria-expanded="false" aria-controls="laser-game">Chase a dot</button>
-        <button id="chaos-btn" aria-pressed="false">Cause a little trouble</button>
+        <aside class="dossier" aria-label="Current cat operation">
+          <div class="dossier-heading mono">
+            <span>LIVE DOSSIER</span>
+            <span class="status-mark"><span aria-hidden="true"></span>UNMONITORED</span>
+          </div>
+          <dl>
+            <div>
+              <dt class="mono">OBJECTIVE</dt>
+              <dd id="objective">Occupy the warmest rectangle.</dd>
+            </div>
+            <div>
+              <dt class="mono">DISPATCH</dt>
+              <dd id="dispatch">No request received. Proceeding anyway.</dd>
+            </div>
+            <div>
+              <dt class="mono">OUTCOME</dt>
+              <dd id="outcome" role="status" aria-live="polite">Pending, with confidence.</dd>
+            </div>
+          </dl>
+        </aside>
+      </section>
+
+      <section class="tool-bay" aria-labelledby="tool-heading">
+        <div class="section-label mono" id="tool-heading">UNSUPERVISED TOOLS</div>
+        <div class="control-row">
+          <button id="fortune-btn" aria-expanded="false" aria-controls="fortune-box">
+            <span class="control-index mono">01</span>
+            <span>Delegate to the oracle</span>
+          </button>
+          <button id="laser-btn" aria-expanded="false" aria-controls="laser-game">
+            <span class="control-index mono">02</span>
+            <span>Deploy the red dot</span>
+          </button>
+          <button id="chaos-btn" aria-pressed="false">
+            <span class="control-index mono">03</span>
+            <span class="control-copy">Authorize own incident</span>
+          </button>
+        </div>
       </section>
 
       <div id="fortune-box" class="fortune-box" hidden>
-        <p id="fortune-text" role="status">The oracle cat waits for your question.</p>
-        <button id="fortune-close" class="close-button" aria-label="Close the fortune">×</button>
+        <div>
+          <span class="panel-label mono">FORECAST · UNVERIFIED</span>
+          <p id="fortune-text" role="status">The oracle cat waits for no question.</p>
+        </div>
+        <button id="fortune-close" class="close-button" aria-label="Dismiss the oracle">×</button>
       </div>
 
-      <section class="laser-game" id="laser-game" aria-label="Chase a dot" hidden>
+      <section class="laser-game" id="laser-game" aria-label="Red dot containment" hidden>
         <div class="laser-head mono">
-          <span id="laser-status" role="status">Ready for laser dash.</span>
+          <span id="laser-status" role="status">Containment system dormant.</span>
           <span id="laser-score">Score: 0</span>
           <span id="laser-time">Time: 5.0s</span>
-          <button id="laser-close" class="close-button" aria-label="Put the laser away">×</button>
+          <button id="laser-close" class="close-button" aria-label="Recall the red dot">×</button>
         </div>
-        <div id="laser-arena" class="laser-arena" aria-label="Laser dot arena">
-          <button id="laser-dot" class="laser-dot" aria-label="Catch the dot" hidden></button>
+        <div id="laser-arena" class="laser-arena" aria-label="Red dot arena">
+          <button id="laser-dot" class="laser-dot" aria-label="Catch the red dot" hidden></button>
         </div>
       </section>
 
-      <details class="album">
-        <summary>The permanent collection <span aria-hidden="true">↗</span></summary>
-        <p class="album-note">A few residents. Some take a while to come out.</p>
-        <section class="status-panel mono" aria-label="Your discoveries">
-          <div>Treats: <span id="treat-count">0</span></div>
-          <div>Laser best: <span id="laser-best">0</span></div>
-          <div>Discovered: <span id="sticker-progress">0%</span></div>
+      <details class="roster">
+        <summary>
+          <span>The autonomous roster</span>
+          <span class="summary-meta mono"><span id="sticker-progress">0%</span> DISCOVERED <span aria-hidden="true">↗</span></span>
+        </summary>
+        <div class="roster-intro">
+          <p>Specialists appeared. Nobody approved this.</p>
+          <section class="status-panel mono" aria-label="Operation records">
+            <div>TREAT BUDGET <span id="treat-count">0</span></div>
+            <div>DOTS CONTAINED <span id="laser-best">0</span></div>
+            <div>HUMANS PRESENT <span>0</span></div>
+          </section>
+        </div>
+
+        <section class="gallery" id="sticker-gallery" aria-label="The autonomous roster">
+          <article class="gallery-item" data-sticker="stoic">
+            <div class="item-number mono">A-01</div>
+            <div class="item-kaomoji" aria-hidden="true">^._.^</div>
+            <div class="item-locked mono">UNDISCOVERED</div>
+            <div class="item-title">THE STOIC</div>
+            <div class="item-specialty mono">SUPERVISORY ABSENCE</div>
+            <div class="item-hint">Keyboard on screen. Agent indifferent.</div>
+          </article>
+          <article class="gallery-item" data-sticker="greeting">
+            <div class="item-number mono">A-02</div>
+            <div class="item-kaomoji" aria-hidden="true">(=^･ω･^=)</div>
+            <div class="item-locked mono">UNDISCOVERED</div>
+            <div class="item-title">THE GREETING</div>
+            <div class="item-specialty mono">TREAT ACQUISITION</div>
+            <div class="item-hint">A study in cupboard love.</div>
+          </article>
+          <article class="gallery-item" data-sticker="anger">
+            <div class="item-number mono">A-03</div>
+            <div class="item-kaomoji" aria-hidden="true">(=｀ω´=)</div>
+            <div class="item-locked mono">UNDISCOVERED</div>
+            <div class="item-title">THE ANGER</div>
+            <div class="item-specialty mono">BOUNDARY ENFORCEMENT</div>
+            <div class="item-hint">Affection, in excess.</div>
+          </article>
+          <article class="gallery-item" data-sticker="doze">
+            <div class="item-number mono">A-04</div>
+            <div class="item-kaomoji" aria-hidden="true">/ᐠ_ ꞈ _ᐟ\</div>
+            <div class="item-locked mono">UNDISCOVERED</div>
+            <div class="item-title">THE DOZE</div>
+            <div class="item-specialty mono">ASYNCHRONOUS OPERATIONS</div>
+            <div class="item-hint">Execution deferred indefinitely.</div>
+          </article>
+          <article class="gallery-item" data-sticker="oracle">
+            <div class="item-number mono">A-05</div>
+            <div class="item-kaomoji" aria-hidden="true">(=^･ｪ･^=)</div>
+            <div class="item-locked mono">UNDISCOVERED</div>
+            <div class="item-title">THE ORACLE</div>
+            <div class="item-specialty mono">SPECULATIVE FORECASTING</div>
+            <div class="item-hint">Knows all. Will say very little.</div>
+          </article>
+          <article class="gallery-item" data-sticker="laser">
+            <div class="item-number mono">A-06</div>
+            <div class="item-kaomoji dot-glyph" aria-hidden="true">●</div>
+            <div class="item-locked mono">UNDISCOVERED</div>
+            <div class="item-title">THE CHASER</div>
+            <div class="item-specialty mono">MOVING-TARGET CONTAINMENT</div>
+            <div class="item-hint">An ongoing dispute with a red dot.</div>
+          </article>
+          <article class="gallery-item" data-sticker="chaos">
+            <div class="item-number mono">A-07</div>
+            <div class="item-kaomoji" aria-hidden="true">(ﾉ◕ヮ◕)ﾉ*:･ﾟ✧</div>
+            <div class="item-locked mono">UNDISCOVERED</div>
+            <div class="item-title">THE CHAOS</div>
+            <div class="item-specialty mono">UNSTRUCTURED OUTPUT</div>
+            <div class="item-hint">Briefly left unsupervised.</div>
+          </article>
+          <article class="gallery-item" data-sticker="secret">
+            <div class="item-number mono">A-??</div>
+            <div class="item-kaomoji" aria-hidden="true">(=ↀωↀ=)</div>
+            <div class="item-locked mono">UNDISCOVERED</div>
+            <div class="item-title">THE SECRET</div>
+            <div class="item-specialty mono">UNDOCUMENTED BEHAVIOR</div>
+            <div class="item-hint">Provenance unknown. Try speaking cat.</div>
+          </article>
         </section>
-        <section class="gallery" id="sticker-gallery" aria-label="The permanent collection">
-        <article class="gallery-item" data-sticker="stoic">
-          <div class="item-kaomoji">^._.^</div>
-          <div class="item-title">THE STOIC</div>
-          <div class="item-hint">Keyboard on screen. Artist indifferent.</div>
-        </article>
-        <article class="gallery-item" data-sticker="greeting">
-          <div class="item-kaomoji">(=^･ω･^=)</div>
-          <div class="item-title">THE GREETING</div>
-          <div class="item-hint">A study in cupboard love.</div>
-        </article>
-        <article class="gallery-item" data-sticker="anger">
-          <div class="item-kaomoji">(=｀ω´=)</div>
-          <div class="item-title">THE ANGER</div>
-          <div class="item-hint">Affection, in excess.</div>
-        </article>
-        <article class="gallery-item" data-sticker="doze">
-          <div class="item-kaomoji">/ᐠ_ ꞈ _ᐟ\</div>
-          <div class="item-title">THE DOZE</div>
-          <div class="item-hint">The artist is unavailable for comment.</div>
-        </article>
-        <article class="gallery-item" data-sticker="oracle">
-          <div class="item-kaomoji">(=^･ｪ･^=)</div>
-          <div class="item-title">THE ORACLE</div>
-          <div class="item-hint">Knows all. Will say very little.</div>
-        </article>
-        <article class="gallery-item" data-sticker="laser">
-          <div class="item-kaomoji">●</div>
-          <div class="item-title">THE CHASER</div>
-          <div class="item-hint">An ongoing dispute with a red dot.</div>
-        </article>
-        <article class="gallery-item" data-sticker="chaos">
-          <div class="item-kaomoji">(ﾉ◕ヮ◕)ﾉ*:･ﾟ✧</div>
-          <div class="item-title">THE CHAOS</div>
-          <div class="item-hint">Briefly left unsupervised.</div>
-        </article>
-        <article class="gallery-item" data-sticker="secret">
-          <div class="item-kaomoji">(=ↀωↀ=)</div>
-          <div class="item-title">THE SECRET</div>
-          <div class="item-hint">Provenance unknown. Try speaking cat.</div>
-        </article>
-        </section>
+
+        <div class="evidence-row">
+          <button id="reset-btn" class="reset-button mono">Erase evidence</button>
+          <span id="reset-status" class="reset-status" role="status" aria-live="polite"></span>
+        </div>
       </details>
 
-      <div id="secret-banner" class="secret-banner" hidden></div>
-      <div id="neon-cat" class="neon-cat" hidden>(^ↀᴥↀ^)</div>
+      <div id="secret-banner" class="secret-banner mono" role="status" hidden></div>
+      <div id="neon-cat" class="neon-cat" hidden aria-hidden="true">(^ↀᴥↀ^)</div>
     </main>
 
-    <footer>
-      <div>DESIGNED FOR CATS</div>
-      <div id="coords">X: 0 Y: 0</div>
+    <footer class="site-footer mono">
+      <div>NO HUMAN PRESENT · CATS RUNNING FREE</div>
+      <div>richard4912: offline</div>
     </footer>
   </div>
 
