@@ -10,13 +10,11 @@ export function bootstrapGallery(doc = document, win = window) {
   const storageKey = "gallery-of-meow-state-v2";
   const totalStickers = Object.keys(createDefaultState().stickers).length;
 
-  const moodDeck = [
-    { face: "/ᐠ｡ꞈ｡ᐟ\\", msg: "purr...", unlockAt: 0 },
-    { face: "(=^ ◡ ^=)", msg: "happy!", unlockAt: 0 },
-    { face: "ฅ^•ﻌ•^ฅ", msg: "feed me", unlockAt: 0 },
-    { face: "(=｀ω´=)", msg: "hiss!", unlockAt: 25 },
-    { face: "/ᐠ_ ꞈ _ᐟ\\", msg: "dozing...", unlockAt: 50 },
-    { face: "(ﾉ◕ヮ◕)ﾉ*:･ﾟ✧", msg: "zoomies!", unlockAt: 10 }
+  const pettingMoods = [
+    { face: "(=^ ◡ ^=)", msg: "yes. this is acceptable." },
+    { face: "/ᐠ｡ꞈ｡ᐟ\\", msg: "you may continue." },
+    { face: "(=｀ω´=)", msg: "we have discussed personal space." },
+    { face: "/ᐠ_ ꞈ _ᐟ\\", msg: "the exhibition is now closed. zzz." }
   ];
 
   const fortunes = [
@@ -44,6 +42,10 @@ export function bootstrapGallery(doc = document, win = window) {
   const laserBtn = doc.getElementById("laser-btn");
   const chaosBtn = doc.getElementById("chaos-btn");
   const fortuneBox = doc.getElementById("fortune-box");
+  const fortuneText = doc.getElementById("fortune-text");
+  const fortuneClose = doc.getElementById("fortune-close");
+  const laserPanel = doc.getElementById("laser-game");
+  const laserClose = doc.getElementById("laser-close");
   const laserArena = doc.getElementById("laser-arena");
   const laserDot = doc.getElementById("laser-dot");
   const laserStatus = doc.getElementById("laser-status");
@@ -65,6 +67,10 @@ export function bootstrapGallery(doc = document, win = window) {
     !laserBtn ||
     !chaosBtn ||
     !fortuneBox ||
+    !fortuneText ||
+    !fortuneClose ||
+    !laserPanel ||
+    !laserClose ||
     !laserArena ||
     !laserDot ||
     !laserStatus ||
@@ -89,6 +95,10 @@ export function bootstrapGallery(doc = document, win = window) {
   let typedBuffer = "";
   let konamiIndex = 0;
   let secretTimeout = null;
+  let petStreak = 0;
+  let lastPetAt = 0;
+  let petAnimationTimeout = null;
+  const reducedMotion = win.matchMedia("(prefers-reduced-motion: reduce)");
 
   function saveState() {
     win.localStorage.setItem(storageKey, JSON.stringify(state));
@@ -96,10 +106,6 @@ export function bootstrapGallery(doc = document, win = window) {
 
   function randomFrom(list) {
     return list[Math.floor(Math.random() * list.length)];
-  }
-
-  function availableMoods() {
-    return moodDeck.filter((mood) => state.treats >= mood.unlockAt);
   }
 
   function unlockSticker(id, message) {
@@ -113,17 +119,7 @@ export function bootstrapGallery(doc = document, win = window) {
   }
 
   function checkMilestones() {
-    const newlyUnlocked = applyMilestones(state);
-
-    if (newlyUnlocked.includes("greeting")) {
-      speech.textContent = "10 treats! Greeting unlocked.";
-    }
-    if (newlyUnlocked.includes("anger")) {
-      speech.textContent = "25 treats! Anger unlocked.";
-    }
-    if (newlyUnlocked.includes("doze")) {
-      speech.textContent = "50 treats! Doze unlocked.";
-    }
+    applyMilestones(state);
   }
 
   function updateStickerGallery() {
@@ -143,7 +139,7 @@ export function bootstrapGallery(doc = document, win = window) {
 
     doc.body.classList.toggle("chaos-mode", state.chaos);
     chaosBtn.setAttribute("aria-pressed", state.chaos ? "true" : "false");
-    chaosBtn.textContent = state.chaos ? "Chaos Mode: On" : "Chaos Mode: Off";
+    chaosBtn.textContent = state.chaos ? "Restore a little dignity" : "Cause a little trouble";
   }
 
   function render() {
@@ -154,29 +150,44 @@ export function bootstrapGallery(doc = document, win = window) {
 
   function petCat() {
     state.treats += 1;
-    const mood = randomFrom(availableMoods());
+    const now = win.performance.now();
+    if (now - lastPetAt > 12000) {
+      petStreak = 0;
+    }
+    lastPetAt = now;
+    const mood = pettingMoods[Math.min(Math.floor(petStreak / 3), pettingMoods.length - 1)];
+    petStreak += 1;
     kaomoji.textContent = mood.face;
     speech.textContent = mood.msg;
-    kaomoji.style.transform = "scale(0.93) rotate(4deg)";
-    win.setTimeout(() => {
-      kaomoji.style.transform = "";
-    }, 140);
+    if (petStreak === 17) {
+      kaomoji.textContent = "(=ↀωↀ=)";
+      speech.textContent = "something only cats can see.";
+    }
+    if (!reducedMotion.matches) {
+      win.clearTimeout(petAnimationTimeout);
+      kaomoji.style.transform = "scale(0.96) rotate(2deg)";
+      petAnimationTimeout = win.setTimeout(() => {
+        kaomoji.style.transform = "";
+      }, 140);
+    }
     render();
     saveState();
   }
 
   function readFortune() {
     const fortune = randomFrom(fortunes);
-    fortuneBox.textContent = fortune;
+    fortuneText.textContent = fortune;
+    fortuneBox.hidden = false;
+    fortuneBtn.setAttribute("aria-expanded", "true");
     speech.textContent = "the oracle has spoken";
-    unlockSticker("oracle", "Oracle sticker unlocked.");
+    unlockSticker("oracle");
     render();
     saveState();
   }
 
   function placeLaserDot() {
     const arenaRect = laserArena.getBoundingClientRect();
-    const dotSize = 24;
+    const dotSize = laserDot.offsetWidth;
     const maxX = Math.max(0, arenaRect.width - dotSize);
     const maxY = Math.max(0, arenaRect.height - dotSize);
     const x = Math.round(Math.random() * maxX);
@@ -208,12 +219,12 @@ export function bootstrapGallery(doc = document, win = window) {
     }
 
     if (laserGame.score >= 6) {
-      laserStatus.textContent = "Laser mastered. Sticker unlocked.";
+      laserStatus.textContent = "A distinguished dot catcher.";
       speech.textContent = "you caught the dot!";
-      unlockSticker("laser", "Laser sticker unlocked.");
+      unlockSticker("laser");
     } else {
-      laserStatus.textContent = "Dot escaped. Try for score 6.";
-      speech.textContent = "so close...";
+      laserStatus.textContent = "The dot has other appointments.";
+      speech.textContent = "we shall pretend that never happened.";
     }
 
     render();
@@ -225,11 +236,13 @@ export function bootstrapGallery(doc = document, win = window) {
       return;
     }
     laserGame.running = true;
+    laserPanel.hidden = false;
+    laserBtn.setAttribute("aria-expanded", "true");
     laserGame.score = 0;
     laserGame.startAt = win.performance.now();
     laserBtn.disabled = true;
     laserDot.hidden = false;
-    laserStatus.textContent = "Catch the red dot.";
+    laserStatus.textContent = "Catch the dot. You have five seconds.";
     setLaserReadout(0, 5);
     placeLaserDot();
 
@@ -270,20 +283,25 @@ export function bootstrapGallery(doc = document, win = window) {
   }
 
   heroCat.addEventListener("click", petCat);
-  heroCat.addEventListener("keydown", (event) => {
-    if (event.key === "Enter" || event.key === " ") {
-      event.preventDefault();
-      petCat();
-    }
-  });
 
   fortuneBtn.addEventListener("click", readFortune);
+  fortuneClose.addEventListener("click", () => {
+    fortuneBox.hidden = true;
+    fortuneBtn.setAttribute("aria-expanded", "false");
+    fortuneBtn.focus();
+  });
   laserBtn.addEventListener("click", startLaserGame);
+  laserClose.addEventListener("click", () => {
+    endLaserGame();
+    laserPanel.hidden = true;
+    laserBtn.setAttribute("aria-expanded", "false");
+    laserBtn.focus();
+  });
   chaosBtn.addEventListener("click", () => {
     state.chaos = !state.chaos;
     if (state.chaos) {
-      unlockSticker("chaos", "Chaos sticker unlocked.");
-      speech.textContent = "maximum chaos";
+      unlockSticker("chaos");
+      speech.textContent = "this is why museums have rules.";
     } else {
       speech.textContent = "calm restored";
     }
@@ -291,21 +309,34 @@ export function bootstrapGallery(doc = document, win = window) {
     saveState();
   });
 
-  laserDot.addEventListener("pointerenter", () => {
+  function catchDot() {
     if (!laserGame.running) {
       return;
     }
     laserGame.score += 1;
     setLaserReadout(laserGame.score, Math.max(0, 5 - (win.performance.now() - laserGame.startAt) / 1000));
     placeLaserDot();
+  }
+
+  laserDot.addEventListener("pointerenter", (event) => {
+    if (event.pointerType === "mouse") {
+      catchDot();
+    }
+  });
+  laserDot.addEventListener("click", (event) => {
+    if (event.detail === 0 || event.pointerType !== "mouse") {
+      catchDot();
+    }
   });
 
   if (win.matchMedia("(pointer: fine)").matches) {
     doc.addEventListener("mousemove", (event) => {
       coords.textContent = `X: ${event.clientX} Y: ${event.clientY}`;
-      const x = (win.innerWidth - event.pageX * 2) / 100;
-      const y = (win.innerHeight - event.pageY * 2) / 100;
-      heroCat.style.transform = `translate(${x}px, ${y}px)`;
+      if (!reducedMotion.matches) {
+        const x = (0.5 - event.clientX / win.innerWidth) * 12;
+        const y = (0.5 - event.clientY / win.innerHeight) * 8;
+        kaomoji.parentElement.style.transform = `translate(${x}px, ${y}px)`;
+      }
     });
   } else {
     coords.textContent = "X: touch Y: touch";
