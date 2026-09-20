@@ -32,8 +32,11 @@ export function bootstrapGallery(doc = document, win = window) {
 
   const kaomoji = doc.getElementById("kaomoji");
   const speech = doc.getElementById("speech");
-  const coords = doc.getElementById("coords");
   const heroCat = doc.getElementById("hero-cat");
+  const shimaenaga = doc.getElementById("shimaenaga");
+  const objective = doc.getElementById("objective");
+  const dispatch = doc.getElementById("dispatch");
+  const outcome = doc.getElementById("outcome");
   const treatCount = doc.getElementById("treat-count");
   const laserBest = doc.getElementById("laser-best");
   const stickerProgress = doc.getElementById("sticker-progress");
@@ -53,12 +56,17 @@ export function bootstrapGallery(doc = document, win = window) {
   const laserTime = doc.getElementById("laser-time");
   const secretBanner = doc.getElementById("secret-banner");
   const neonCat = doc.getElementById("neon-cat");
+  const resetBtn = doc.getElementById("reset-btn");
+  const resetStatus = doc.getElementById("reset-status");
 
   if (
     !kaomoji ||
     !speech ||
-    !coords ||
     !heroCat ||
+    !shimaenaga ||
+    !objective ||
+    !dispatch ||
+    !outcome ||
     !treatCount ||
     !laserBest ||
     !stickerProgress ||
@@ -77,12 +85,14 @@ export function bootstrapGallery(doc = document, win = window) {
     !laserScore ||
     !laserTime ||
     !secretBanner ||
-    !neonCat
+    !neonCat ||
+    !resetBtn ||
+    !resetStatus
   ) {
     return;
   }
 
-  const state = mergeStoredState(win.localStorage.getItem(storageKey));
+  let state = mergeStoredState(win.localStorage.getItem(storageKey));
 
   const laserGame = {
     running: false,
@@ -98,7 +108,27 @@ export function bootstrapGallery(doc = document, win = window) {
   let petStreak = 0;
   let lastPetAt = 0;
   let petAnimationTimeout = null;
+  let shimaenagaAnimationTimeout = null;
+  let resetConfirmTimeout = null;
+  let resetArmed = false;
+  let previousUnlocked = new Set(
+    Object.entries(state.stickers)
+      .filter(([, unlocked]) => Boolean(unlocked))
+      .map(([id]) => id)
+  );
   const reducedMotion = win.matchMedia("(prefers-reduced-motion: reduce)");
+
+  function updateDossier(nextDispatch, nextOutcome, nextObjective) {
+    if (nextObjective) {
+      objective.textContent = nextObjective;
+    }
+    if (nextDispatch) {
+      dispatch.textContent = nextDispatch;
+    }
+    if (nextOutcome) {
+      outcome.textContent = nextOutcome;
+    }
+  }
 
   function saveState() {
     win.localStorage.setItem(storageKey, JSON.stringify(state));
@@ -128,8 +158,17 @@ export function bootstrapGallery(doc = document, win = window) {
       const id = card.dataset.sticker;
       const unlocked = Boolean(state.stickers[id]);
       card.classList.toggle("locked", !unlocked);
-      card.setAttribute("aria-disabled", unlocked ? "false" : "true");
+      if (unlocked && !previousUnlocked.has(id)) {
+        card.classList.remove("just-unlocked");
+        void card.offsetWidth;
+        card.classList.add("just-unlocked");
+      }
     });
+    previousUnlocked = new Set(
+      Object.entries(state.stickers)
+        .filter(([, unlocked]) => Boolean(unlocked))
+        .map(([id]) => id)
+    );
   }
 
   function updateHud() {
@@ -139,7 +178,10 @@ export function bootstrapGallery(doc = document, win = window) {
 
     doc.body.classList.toggle("chaos-mode", state.chaos);
     chaosBtn.setAttribute("aria-pressed", state.chaos ? "true" : "false");
-    chaosBtn.textContent = state.chaos ? "Restore a little dignity" : "Cause a little trouble";
+    const chaosCopy = chaosBtn.querySelector(".control-copy");
+    if (chaosCopy) {
+      chaosCopy.textContent = state.chaos ? "Pretend this was intentional" : "Authorize own incident";
+    }
   }
 
   function render() {
@@ -163,6 +205,17 @@ export function bootstrapGallery(doc = document, win = window) {
       kaomoji.textContent = "(=ↀωↀ=)";
       speech.textContent = "something only cats can see.";
     }
+    const dossierOutcome =
+      petStreak >= 10
+        ? "Execution deferred indefinitely."
+        : petStreak >= 7
+          ? "Personal-space policy invoked."
+          : "Compensation accepted without review.";
+    updateDossier(
+      "Treat requisition approved by recipient.",
+      dossierOutcome,
+      petStreak >= 10 ? "Remain unavailable until further notice." : "Acquire additional affection."
+    );
     if (!reducedMotion.matches) {
       win.clearTimeout(petAnimationTimeout);
       kaomoji.style.transform = "scale(0.96) rotate(2deg)";
@@ -180,6 +233,11 @@ export function bootstrapGallery(doc = document, win = window) {
     fortuneBox.hidden = false;
     fortuneBtn.setAttribute("aria-expanded", "true");
     speech.textContent = "the oracle has spoken";
+    updateDossier(
+      "Forecasting delegated. Oversight bypassed.",
+      fortune,
+      "Act on unverifiable information."
+    );
     unlockSticker("oracle");
     render();
     saveState();
@@ -222,9 +280,19 @@ export function bootstrapGallery(doc = document, win = window) {
       laserStatus.textContent = "A distinguished dot catcher.";
       speech.textContent = "you caught the dot!";
       unlockSticker("laser");
+      updateDossier(
+        "Moving target containment concluded.",
+        `${laserGame.score} dots contained. No paperwork filed.`,
+        "Maintain tactical readiness."
+      );
     } else {
       laserStatus.textContent = "The dot has other appointments.";
       speech.textContent = "we shall pretend that never happened.";
+      updateDossier(
+        "Moving target containment concluded.",
+        "Target escaped. Report classified as success.",
+        "Avoid accountability."
+      );
     }
 
     render();
@@ -243,6 +311,11 @@ export function bootstrapGallery(doc = document, win = window) {
     laserBtn.disabled = true;
     laserDot.hidden = false;
     laserStatus.textContent = "Catch the dot. You have five seconds.";
+    updateDossier(
+      "Moving target containment initiated.",
+      "Pursuit in progress.",
+      "Neutralize the red dot."
+    );
     setLaserReadout(0, 5);
     placeLaserDot();
 
@@ -283,6 +356,21 @@ export function bootstrapGallery(doc = document, win = window) {
   }
 
   heroCat.addEventListener("click", petCat);
+  shimaenaga.addEventListener("click", () => {
+    speech.textContent = "a second opinion has arrived.";
+    updateDossier(
+      "Agent 002 joined without invitation.",
+      "Morale increased beyond measurable limits.",
+      "Protect the round one."
+    );
+    win.clearTimeout(shimaenagaAnimationTimeout);
+    shimaenaga.classList.remove("celebrating");
+    void shimaenaga.offsetWidth;
+    shimaenaga.classList.add("celebrating");
+    shimaenagaAnimationTimeout = win.setTimeout(() => {
+      shimaenaga.classList.remove("celebrating");
+    }, 700);
+  });
 
   fortuneBtn.addEventListener("click", readFortune);
   fortuneClose.addEventListener("click", () => {
@@ -302,8 +390,18 @@ export function bootstrapGallery(doc = document, win = window) {
     if (state.chaos) {
       unlockSticker("chaos");
       speech.textContent = "this is why museums have rules.";
+      updateDossier(
+        "Incident authorized by incident.",
+        "Incident created successfully.",
+        "Increase entropy."
+      );
     } else {
       speech.textContent = "calm restored";
+      updateDossier(
+        "Evidence rearranged into a straight line.",
+        "Incident declared intentional.",
+        "Appear professional."
+      );
     }
     render();
     saveState();
@@ -329,18 +427,48 @@ export function bootstrapGallery(doc = document, win = window) {
     }
   });
 
-  if (win.matchMedia("(pointer: fine)").matches) {
+  if (win.matchMedia("(pointer: fine)").matches && !reducedMotion.matches) {
     doc.addEventListener("mousemove", (event) => {
-      coords.textContent = `X: ${event.clientX} Y: ${event.clientY}`;
-      if (!reducedMotion.matches) {
-        const x = (0.5 - event.clientX / win.innerWidth) * 12;
-        const y = (0.5 - event.clientY / win.innerHeight) * 8;
-        kaomoji.parentElement.style.transform = `translate(${x}px, ${y}px)`;
-      }
+      const x = (0.5 - event.clientX / win.innerWidth) * 5;
+      const y = (0.5 - event.clientY / win.innerHeight) * 4;
+      kaomoji.style.transform = `translate(${x}px, ${y}px)`;
     });
-  } else {
-    coords.textContent = "X: touch Y: touch";
   }
+
+  function disarmReset(message = "") {
+    win.clearTimeout(resetConfirmTimeout);
+    resetConfirmTimeout = null;
+    resetArmed = false;
+    resetBtn.textContent = "Erase evidence";
+    resetBtn.classList.remove("confirming");
+    resetStatus.textContent = message;
+  }
+
+  resetBtn.addEventListener("click", () => {
+    if (!resetArmed) {
+      resetArmed = true;
+      resetBtn.textContent = "Confirm disappearance";
+      resetBtn.classList.add("confirming");
+      resetStatus.textContent = "This clears treats, scores, incidents, and discoveries.";
+      resetConfirmTimeout = win.setTimeout(() => disarmReset(), 6000);
+      return;
+    }
+
+    win.localStorage.removeItem(storageKey);
+    state = createDefaultState();
+    previousUnlocked = new Set();
+    petStreak = 0;
+    kaomoji.textContent = "/ᐠ｡ꞈ｡ᐟ\\";
+    speech.textContent = "the evidence has been professionally misplaced.";
+    updateDossier(
+      "Records removed without authorization.",
+      "No evidence found. Excellent work.",
+      "Occupy the warmest rectangle."
+    );
+    render();
+    saveState();
+    disarmReset("Case file erased.");
+  });
 
   doc.addEventListener("keydown", (event) => {
     const progress = advanceSecretTrackers(
@@ -365,5 +493,5 @@ export function bootstrapGallery(doc = document, win = window) {
 
   render();
   setLaserReadout(0, 5);
-  win.console.log("Gallery of Meow v2 loaded.");
+  win.console.log("Cat Operations v2 loaded. No human found.");
 }
