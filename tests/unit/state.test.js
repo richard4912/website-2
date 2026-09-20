@@ -3,7 +3,7 @@ import {
   KONAMI_SEQUENCE,
   advanceSecretTrackers,
   applyMilestones,
-  computeStickerProgress,
+  countUnlockedStickers,
   createDefaultState,
   mergeStoredState
 } from "../../src/state.js";
@@ -13,6 +13,7 @@ describe("createDefaultState", () => {
     const state = createDefaultState();
 
     expect(state.treats).toBe(0);
+    expect(state.greets).toBe(0);
     expect(state.laserBest).toBe(0);
     expect(state.chaos).toBe(false);
     expect(state.stickers.stoic).toBe(true);
@@ -45,6 +46,11 @@ describe("mergeStoredState", () => {
     expect(state.stickers.stoic).toBe(true);
     expect(state.stickers.oracle).toBe(true);
   });
+
+  it("restores a persisted greet count and rejects a non-numeric one", () => {
+    expect(mergeStoredState(JSON.stringify({ greets: 7 })).greets).toBe(7);
+    expect(mergeStoredState(JSON.stringify({ greets: "lots" })).greets).toBe(0);
+  });
 });
 
 describe("applyMilestones", () => {
@@ -69,14 +75,20 @@ describe("applyMilestones", () => {
   });
 });
 
-describe("computeStickerProgress", () => {
-  it("returns rounded unlocked percentage", () => {
+describe("countUnlockedStickers", () => {
+  it("counts unlocked entries", () => {
     const state = createDefaultState();
+
+    expect(countUnlockedStickers(state)).toBe(1);
+
     state.stickers.greeting = true;
     state.stickers.anger = true;
 
-    expect(computeStickerProgress(state)).toBe(38);
-    expect(computeStickerProgress(state, 8)).toBe(38);
+    expect(countUnlockedStickers(state)).toBe(3);
+  });
+
+  it("tolerates a state with no stickers map", () => {
+    expect(countUnlockedStickers({})).toBe(0);
   });
 });
 

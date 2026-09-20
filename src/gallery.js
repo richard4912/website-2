@@ -1,7 +1,7 @@
 import {
   advanceSecretTrackers,
   applyMilestones,
-  computeStickerProgress,
+  countUnlockedStickers,
   createDefaultState,
   mergeStoredState
 } from "./state.js";
@@ -16,6 +16,50 @@ export function bootstrapGallery(doc = document, win = window) {
     { face: "(=｀ω´=)", msg: "we have discussed personal space." },
     { face: "/ᐠ_ ꞈ _ᐟ\\", msg: "the exhibition is now closed. zzz." }
   ];
+
+  // Agent 002 escalates on the persisted greet count, so a relationship accumulates
+  // across visits rather than resetting. Rung 0 is the first-ever greeting.
+  const greetingMoods = [
+    {
+      msg: "a second opinion has arrived.",
+      dispatch: "Agent 002 joined without invitation.",
+      outcome: "Morale increased beyond measurable limits.",
+      objective: "Protect the round one."
+    },
+    {
+      msg: "agent 002 declines to elaborate.",
+      dispatch: "Second opinion filed. Unread.",
+      outcome: "Round. Still round.",
+      objective: "Maintain the round one."
+    },
+    {
+      msg: "the small one has opinions about the schedule.",
+      dispatch: "Agenda revised without consultation.",
+      outcome: "Revision accepted unanimously. One vote cast.",
+      objective: "Defer to the smaller authority."
+    },
+    {
+      msg: "a working arrangement, apparently.",
+      dispatch: "Joint operations continuing indefinitely.",
+      outcome: "No end date proposed. None requested.",
+      objective: "Continue as established."
+    }
+  ];
+
+  // Fires instead of the ladder when the other agent was engaged moments ago. This is
+  // the only place the two agents know about each other.
+  const bothPresentGreeting = {
+    msg: "both agents accounted for.",
+    dispatch: "Both agents present. Neither in charge.",
+    outcome: "Coverage complete. Supervision still absent.",
+    objective: "Remain a set."
+  };
+
+  const bothPresentPetting = {
+    msg: "the small one is watching you do that.",
+    dispatch: "Treat requisition observed by a second party.",
+    outcome: "Witnessed. Filed without comment."
+  };
 
   const fortunes = [
     "You will find exactly one warm sunbeam and claim it.",
@@ -98,6 +142,8 @@ export function bootstrapGallery(doc = document, win = window) {
     running: false,
     score: 0,
     startAt: 0,
+    dotX: null,
+    dotY: null,
     moveInterval: null,
     tickInterval: null
   };
@@ -105,8 +151,10 @@ export function bootstrapGallery(doc = document, win = window) {
   let typedBuffer = "";
   let konamiIndex = 0;
   let secretTimeout = null;
+  let incidentTimeout = null;
   let petStreak = 0;
   let lastPetAt = 0;
+  let lastGreetAt = 0;
   let petAnimationTimeout = null;
   let shimaenagaAnimationTimeout = null;
   let resetConfirmTimeout = null;
@@ -136,6 +184,14 @@ export function bootstrapGallery(doc = document, win = window) {
 
   function randomFrom(list) {
     return list[Math.floor(Math.random() * list.length)];
+  }
+
+  const COMPANY_WINDOW_MS = 12000;
+
+  // A timestamp of 0 means "never engaged". Without this guard a fresh page load
+  // would read as "engaged moments ago", because performance.now() starts near zero.
+  function engagedRecently(timestamp, now) {
+    return timestamp > 0 && now - timestamp <= COMPANY_WINDOW_MS;
   }
 
   function unlockSticker(id, message) {
@@ -174,7 +230,7 @@ export function bootstrapGallery(doc = document, win = window) {
   function updateHud() {
     treatCount.textContent = String(state.treats);
     laserBest.textContent = String(state.laserBest);
-    stickerProgress.textContent = `${computeStickerProgress(state, totalStickers)}%`;
+    stickerProgress.textContent = `${countUnlockedStickers(state)} OF ${totalStickers}`;
 
     doc.body.classList.toggle("chaos-mode", state.chaos);
     chaosBtn.setAttribute("aria-pressed", state.chaos ? "true" : "false");
@@ -193,7 +249,8 @@ export function bootstrapGallery(doc = document, win = window) {
   function petCat() {
     state.treats += 1;
     const now = win.performance.now();
-    if (now - lastPetAt > 12000) {
+    const withCompany = engagedRecently(lastGreetAt, now);
+    if (now - lastPetAt > COMPANY_WINDOW_MS) {
       petStreak = 0;
     }
     lastPetAt = now;
@@ -204,23 +261,35 @@ export function bootstrapGallery(doc = document, win = window) {
     if (petStreak === 17) {
       kaomoji.textContent = "(=ↀωↀ=)";
       speech.textContent = "something only cats can see.";
+    } else if (withCompany) {
+      speech.textContent = bothPresentPetting.msg;
     }
-    const dossierOutcome =
-      petStreak >= 10
-        ? "Execution deferred indefinitely."
-        : petStreak >= 7
-          ? "Personal-space policy invoked."
-          : "Compensation accepted without review.";
-    updateDossier(
-      "Treat requisition approved by recipient.",
-      dossierOutcome,
-      petStreak >= 10 ? "Remain unavailable until further notice." : "Acquire additional affection."
-    );
+    if (withCompany) {
+      updateDossier(
+        bothPresentPetting.dispatch,
+        bothPresentPetting.outcome,
+        "Operate as a pair."
+      );
+    } else {
+      const dossierOutcome =
+        petStreak >= 10
+          ? "Execution deferred indefinitely."
+          : petStreak >= 7
+            ? "Personal-space policy invoked."
+            : "Compensation accepted without review.";
+      updateDossier(
+        "Treat requisition approved by recipient.",
+        dossierOutcome,
+        petStreak >= 10 ? "Remain unavailable until further notice." : "Acquire additional affection."
+      );
+    }
     if (!reducedMotion.matches) {
       win.clearTimeout(petAnimationTimeout);
-      kaomoji.style.transform = "scale(0.96) rotate(2deg)";
+      kaomoji.style.setProperty("--squash", "0.96");
+      kaomoji.style.setProperty("--tilt", "2deg");
       petAnimationTimeout = win.setTimeout(() => {
-        kaomoji.style.transform = "";
+        kaomoji.style.removeProperty("--squash");
+        kaomoji.style.removeProperty("--tilt");
       }, 140);
     }
     render();
@@ -243,15 +312,55 @@ export function bootstrapGallery(doc = document, win = window) {
     saveState();
   }
 
-  function placeLaserDot() {
+  // A dot that teleports anywhere is a test of mouse speed. A dot that scurries a
+  // bounded distance and bounces off the walls is an argument you can actually win.
+  // Being caught startles it further, so catches cannot be chained on the spot.
+  const LASER_STEP_MIN = 60;
+  const LASER_STEP_MAX = 150;
+  const LASER_STARTLED_MIN = 240;
+  const LASER_STARTLED_MAX = 430;
+  // Tuned against a simulated player with distance-proportional travel time: a quick
+  // player clears this reliably, an average one usually, a distracted one rarely.
+  const LASER_UNLOCK_SCORE = 5;
+
+  function reflectIntoRange(value, max) {
+    if (max <= 0) {
+      return 0;
+    }
+    let reflected = value < 0 ? -value : value;
+    if (reflected > max) {
+      reflected = max - (reflected - max);
+    }
+    return Math.min(max, Math.max(0, reflected));
+  }
+
+  function randomStep(startled) {
+    const min = startled ? LASER_STARTLED_MIN : LASER_STEP_MIN;
+    const max = startled ? LASER_STARTLED_MAX : LASER_STEP_MAX;
+    const magnitude = min + Math.random() * (max - min);
+    return Math.random() < 0.5 ? -magnitude : magnitude;
+  }
+
+  function placeLaserDot(startled = false) {
     const arenaRect = laserArena.getBoundingClientRect();
     const dotSize = laserDot.offsetWidth;
     const maxX = Math.max(0, arenaRect.width - dotSize);
     const maxY = Math.max(0, arenaRect.height - dotSize);
-    const x = Math.round(Math.random() * maxX);
-    const y = Math.round(Math.random() * maxY);
-    laserDot.style.left = `${x}px`;
-    laserDot.style.top = `${y}px`;
+
+    let x;
+    let y;
+    if (laserGame.dotX === null || laserGame.dotY === null) {
+      x = Math.random() * maxX;
+      y = Math.random() * maxY;
+    } else {
+      x = laserGame.dotX + randomStep(startled);
+      y = laserGame.dotY + randomStep(startled);
+    }
+
+    laserGame.dotX = reflectIntoRange(x, maxX);
+    laserGame.dotY = reflectIntoRange(y, maxY);
+    laserDot.style.left = `${Math.round(laserGame.dotX)}px`;
+    laserDot.style.top = `${Math.round(laserGame.dotY)}px`;
   }
 
   function setLaserReadout(score, secondsLeft) {
@@ -276,7 +385,7 @@ export function bootstrapGallery(doc = document, win = window) {
       state.laserBest = laserGame.score;
     }
 
-    if (laserGame.score >= 6) {
+    if (laserGame.score >= LASER_UNLOCK_SCORE) {
       laserStatus.textContent = "A distinguished dot catcher.";
       speech.textContent = "you caught the dot!";
       unlockSticker("laser");
@@ -308,6 +417,8 @@ export function bootstrapGallery(doc = document, win = window) {
     laserBtn.setAttribute("aria-expanded", "true");
     laserGame.score = 0;
     laserGame.startAt = win.performance.now();
+    laserGame.dotX = null;
+    laserGame.dotY = null;
     laserBtn.disabled = true;
     laserDot.hidden = false;
     laserStatus.textContent = "Catch the dot. You have five seconds.";
@@ -319,7 +430,7 @@ export function bootstrapGallery(doc = document, win = window) {
     setLaserReadout(0, 5);
     placeLaserDot();
 
-    laserGame.moveInterval = win.setInterval(placeLaserDot, 550);
+    laserGame.moveInterval = win.setInterval(() => placeLaserDot(), 520);
     laserGame.tickInterval = win.setInterval(() => {
       const elapsed = (win.performance.now() - laserGame.startAt) / 1000;
       const left = Math.max(0, 5 - elapsed);
@@ -356,13 +467,22 @@ export function bootstrapGallery(doc = document, win = window) {
   }
 
   heroCat.addEventListener("click", petCat);
+  function greetAgentTwo() {
+    const now = win.performance.now();
+    const withCompany = engagedRecently(lastPetAt, now);
+    lastGreetAt = now;
+
+    const rung = Math.min(Math.floor(state.greets / 3), greetingMoods.length - 1);
+    const mood = withCompany ? bothPresentGreeting : greetingMoods[rung];
+    state.greets += 1;
+
+    speech.textContent = mood.msg;
+    updateDossier(mood.dispatch, mood.outcome, mood.objective);
+    saveState();
+  }
+
   shimaenaga.addEventListener("click", () => {
-    speech.textContent = "a second opinion has arrived.";
-    updateDossier(
-      "Agent 002 joined without invitation.",
-      "Morale increased beyond measurable limits.",
-      "Protect the round one."
-    );
+    greetAgentTwo();
     win.clearTimeout(shimaenagaAnimationTimeout);
     shimaenaga.classList.remove("celebrating");
     void shimaenaga.offsetWidth;
@@ -388,6 +508,16 @@ export function bootstrapGallery(doc = document, win = window) {
   chaosBtn.addEventListener("click", () => {
     state.chaos = !state.chaos;
     if (state.chaos) {
+      // "Authorize own incident" promises an event, so fire one before settling into
+      // the persistent skin. The animation itself is CSS, so the global
+      // prefers-reduced-motion block suppresses it without a second code path.
+      win.clearTimeout(incidentTimeout);
+      doc.body.classList.remove("chaos-igniting");
+      void doc.body.offsetWidth;
+      doc.body.classList.add("chaos-igniting");
+      incidentTimeout = win.setTimeout(() => {
+        doc.body.classList.remove("chaos-igniting");
+      }, 900);
       unlockSticker("chaos");
       speech.textContent = "this is why museums have rules.";
       updateDossier(
@@ -396,6 +526,8 @@ export function bootstrapGallery(doc = document, win = window) {
         "Increase entropy."
       );
     } else {
+      win.clearTimeout(incidentTimeout);
+      doc.body.classList.remove("chaos-igniting");
       speech.textContent = "calm restored";
       updateDossier(
         "Evidence rearranged into a straight line.",
@@ -413,7 +545,7 @@ export function bootstrapGallery(doc = document, win = window) {
     }
     laserGame.score += 1;
     setLaserReadout(laserGame.score, Math.max(0, 5 - (win.performance.now() - laserGame.startAt) / 1000));
-    placeLaserDot();
+    placeLaserDot(true);
   }
 
   laserDot.addEventListener("pointerenter", (event) => {
@@ -428,10 +560,19 @@ export function bootstrapGallery(doc = document, win = window) {
   });
 
   if (win.matchMedia("(pointer: fine)").matches && !reducedMotion.matches) {
+    let driftFrame = null;
     doc.addEventListener("mousemove", (event) => {
-      const x = (0.5 - event.clientX / win.innerWidth) * 5;
-      const y = (0.5 - event.clientY / win.innerHeight) * 4;
-      kaomoji.style.transform = `translate(${x}px, ${y}px)`;
+      const { clientX, clientY } = event;
+      if (driftFrame !== null) {
+        return;
+      }
+      driftFrame = win.requestAnimationFrame(() => {
+        driftFrame = null;
+        const x = (0.5 - clientX / win.innerWidth) * 5;
+        const y = (0.5 - clientY / win.innerHeight) * 4;
+        kaomoji.style.setProperty("--drift-x", `${x}px`);
+        kaomoji.style.setProperty("--drift-y", `${y}px`);
+      });
     });
   }
 
@@ -455,9 +596,13 @@ export function bootstrapGallery(doc = document, win = window) {
     }
 
     win.localStorage.removeItem(storageKey);
+    win.clearTimeout(incidentTimeout);
+    doc.body.classList.remove("chaos-igniting");
     state = createDefaultState();
     previousUnlocked = new Set();
     petStreak = 0;
+    lastPetAt = 0;
+    lastGreetAt = 0;
     kaomoji.textContent = "/ᐠ｡ꞈ｡ᐟ\\";
     speech.textContent = "the evidence has been professionally misplaced.";
     updateDossier(
