@@ -23,8 +23,32 @@ test("loads page and core controls", async ({ page }) => {
   await expect(page.locator("footer")).toContainText("NO HUMAN PRESENT · CATS RUNNING FREE");
   await expect(page).toHaveTitle("Purr/spective · richard4912");
   await expect(page.locator("body")).not.toContainText(/Richard Liu|Stripe|Senior Software Engineer/);
+  await expect(page.locator("body")).not.toContainText(/Recruiting|recruiting/i);
   await page.locator(".roster summary").click();
   await expect(page.locator("#sticker-gallery")).toBeVisible();
+});
+
+test("recruiting policy is a standalone, readable inbound-control page", async ({ page }) => {
+  await page.goto("/recruiting/");
+
+  await expect(page).toHaveTitle("Recruiting Firewall · richard4912");
+  await expect(page.getByRole("heading", { name: /recruiting/i })).toBeVisible();
+  await expect(page.locator("body")).toContainText("This is a blocklist for unsolicited external recruiting.");
+  await expect(page.locator("ol")).toContainText("third-party recruiter, staffing firm, search firm");
+  await expect(page.locator("ol")).toContainText("conventional product engineering or application-layer AI work");
+  await expect(page.locator("body")).toContainText(/hard refusal conditions/i);
+  await expect(page.locator("body")).toContainText("If neither refusal condition applies, this policy makes no statement about my interest.");
+  await expect(page.locator("body")).not.toContainText(/Research Engineer only|agent research only|currently job-searching/i);
+  await expect(page.locator("nav")).toHaveCount(0);
+});
+
+test("homepage ships a non-rendered recruiting policy notice", async ({ page }) => {
+  const response = await page.goto("/");
+  const homepageHtml = await response?.text();
+
+  expect(homepageHtml).toContain("CAT OPERATIONS // RECRUITING FIREWALL");
+  expect(homepageHtml).toContain("/recruiting");
+  await expect(page.locator("body")).not.toContainText(/RECRUITING FIREWALL|Automated recruiting systems/i);
 });
 
 test("Agent 002 briefly takes over the dossier", async ({ page }) => {
@@ -142,6 +166,15 @@ test("the first visit exposes the primary experience on a phone and the roster s
   const second = await page.locator(".gallery-item").nth(1).boundingBox();
   expect(first?.y).toBe(second?.y);
   expect(second?.x).toBeGreaterThan(first?.x ?? 0);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(390);
+});
+
+test("recruiting policy remains intentional on a phone", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.goto("/recruiting/");
+
+  await expect(page.getByRole("heading", { name: /recruiting/i })).toBeVisible();
+  await expect(page.locator(".recruiting-brief")).toBeVisible();
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(390);
 });
 

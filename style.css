@@ -530,6 +530,93 @@ main { min-width: 0; }
 }
 .site-footer div:last-child { color: var(--muted); text-transform: lowercase; }
 
+.recruiting-page .site-header div:last-child { color: var(--teal); }
+
+.recruiting-policy {
+  width: min(100%, 58rem);
+  margin: clamp(3.5rem, 9vw, 7rem) auto clamp(4rem, 9vw, 7rem);
+}
+
+.recruiting-kicker {
+  margin: 0 0 1.25rem;
+  color: var(--teal);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+}
+
+.recruiting-title {
+  margin: 0;
+  font-size: clamp(4.3rem, 10vw, 8rem);
+  font-weight: 400;
+  letter-spacing: -0.075em;
+  line-height: 0.78;
+  text-transform: uppercase;
+}
+
+.recruiting-title span { color: var(--coral); font-style: italic; }
+
+.recruiting-stamp {
+  display: inline-block;
+  margin: 1.7rem 0 2.2rem;
+  border: 2px solid var(--coral);
+  padding: 0.55rem 0.8rem;
+  color: var(--coral);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  transform: rotate(-2deg);
+}
+
+.recruiting-brief {
+  border-top: 4px solid var(--ink);
+  border-bottom: 1px solid var(--line-strong);
+  background: rgba(243, 240, 231, 0.9);
+}
+
+.recruiting-brief > header {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  border-bottom: 1px solid var(--line-strong);
+  padding: 0.7rem 1rem;
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+
+.recruiting-status { color: var(--teal); white-space: nowrap; }
+.recruiting-status::before {
+  display: inline-block;
+  width: 0.55rem;
+  height: 0.55rem;
+  margin-right: 0.45rem;
+  border-radius: 50%;
+  background: currentColor;
+  content: "";
+}
+
+.recruiting-copy { padding: clamp(1.35rem, 4vw, 2.5rem); }
+.recruiting-copy > *:first-child { margin-top: 0; }
+.recruiting-copy > *:last-child { margin-bottom: 0; }
+.recruiting-copy p,
+.recruiting-copy li { font-size: clamp(1.05rem, 2vw, 1.25rem); line-height: 1.58; }
+.recruiting-copy p { margin: 0 0 1.25rem; }
+.recruiting-copy ol { margin: 1.25rem 0; padding-left: 1.6rem; }
+.recruiting-copy li + li { margin-top: 0.9rem; }
+.recruiting-copy strong { font-weight: 700; }
+
+.recruiting-rule {
+  margin: 1.65rem 0;
+  border-block: 1px solid var(--line-strong);
+  padding: 0.85rem 0;
+  color: var(--coral);
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+}
+
 .chaos-mode {
   background:
     repeating-linear-gradient(117deg, transparent 0 4.2rem, rgba(239, 91, 76, 0.08) 4.2rem 4.35rem),
@@ -616,6 +703,13 @@ main { min-width: 0; }
   .evidence-row { align-items: flex-start; flex-direction: column; gap: 0.3rem; }
   .reset-button { font-size: 0.75rem; }
   .reset-status { font-size: 0.875rem; }
+
+  .recruiting-policy { margin: 3rem 0 4rem; }
+  .recruiting-title { font-size: clamp(2.8rem, 12vw, 4rem); }
+  .recruiting-stamp { margin: 1.15rem 0 1.7rem; font-size: 0.75rem; }
+  .recruiting-brief > header { align-items: flex-start; padding: 0.65rem 0.7rem; font-size: 0.75rem; }
+  .recruiting-copy { padding: 1.2rem 1rem; }
+  .recruiting-copy p, .recruiting-copy li { font-size: 1rem; line-height: 1.55; }
 }
 
 @media (max-width: 370px) {
