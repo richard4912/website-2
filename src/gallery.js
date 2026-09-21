@@ -51,27 +51,34 @@ export function bootstrapGallery(doc = document, win = window) {
   const bothPresentGreeting = {
     msg: "both agents accounted for.",
     dispatch: "Both agents present. Neither in charge.",
-    outcome: "Coverage complete. Supervision still absent.",
+    outcome: "Full coverage. Of one sunbeam.",
     objective: "Remain a set."
   };
 
   const bothPresentPetting = {
     msg: "the small one is watching you do that.",
-    dispatch: "Treat requisition observed by a second party.",
-    outcome: "Witnessed. Filed without comment."
+    dispatch: "The treat handover had a witness.",
+    outcome: "Seen. No comment offered."
   };
 
+  // Both agents forecast. 001 reads rooms, furniture and food; 002 is eight grams of
+  // bird and reads weather, branches and the merits of sitting still. The byline is
+  // half the joke, so every fortune carries the agent who filed it.
   const fortunes = [
-    "You will find exactly one warm sunbeam and claim it.",
-    "A cardboard box approaches. Greatness follows.",
-    "The next snack appears when you sit dramatically.",
-    "Today is excellent for strategic naps.",
-    "A mysterious toe will pass nearby. You know what to do.",
-    "An unopened package brings fortune and shredded paper.",
-    "Your zoomies will be remembered for generations.",
-    "The red dot fears your focus.",
-    "A polite meow yields unreasonable rewards.",
-    "Someone will call you baby in the next hour."
+    { from: "001", text: "The sunbeam will move at four. Follow it. Clear your afternoon." },
+    { from: "001", text: "A box arrives today. It will be one size too small and you will fit anyway." },
+    { from: "001", text: "Sit near the cupboard and look through it. The snack situation resolves itself." },
+    { from: "001", text: "Someone will hold a door open for you. Consider it. Take your time." },
+    { from: "001", text: "You will be called baby before dinner, in that voice, in front of company." },
+    { from: "001", text: "The warmest surface is the one already covered in paperwork." },
+    { from: "001", text: "One object leaves one shelf tonight. You will choose it correctly." },
+    { from: "001", text: "The red dot gets careless around the fourth minute." },
+    { from: "002", text: "Snow tonight. Roost early, eat twice, stay round." },
+    { from: "002", text: "You weigh eight grams. Behave accordingly." },
+    { from: "002", text: "The branch will hold. It has held every time so far." },
+    { from: "002", text: "Good news is coming. Details will not be provided." },
+    { from: "002", text: "Sit very still. Everything you want is about to walk past you." },
+    { from: "002", text: "Fluff up. The forecast is unkind and you are not." }
   ];
 
   const kaomoji = doc.getElementById("kaomoji");
@@ -90,6 +97,7 @@ export function bootstrapGallery(doc = document, win = window) {
   const chaosBtn = doc.getElementById("chaos-btn");
   const fortuneBox = doc.getElementById("fortune-box");
   const fortuneText = doc.getElementById("fortune-text");
+  const fortuneSource = doc.getElementById("fortune-source");
   const fortuneClose = doc.getElementById("fortune-close");
   const laserPanel = doc.getElementById("laser-game");
   const laserClose = doc.getElementById("laser-close");
@@ -120,6 +128,7 @@ export function bootstrapGallery(doc = document, win = window) {
     !chaosBtn ||
     !fortuneBox ||
     !fortuneText ||
+    !fortuneSource ||
     !fortuneClose ||
     !laserPanel ||
     !laserClose ||
@@ -273,14 +282,14 @@ export function bootstrapGallery(doc = document, win = window) {
     } else {
       const dossierOutcome =
         petStreak >= 10
-          ? "Execution deferred indefinitely."
+          ? "Asleep. Will resume never."
           : petStreak >= 7
-            ? "Personal-space policy invoked."
-            : "Compensation accepted without review.";
+            ? "A boundary has been mentioned."
+            : "Payment accepted. No receipt issued.";
       updateDossier(
-        "Treat requisition approved by recipient.",
+        "Treat approved by the recipient.",
         dossierOutcome,
-        petStreak >= 10 ? "Remain unavailable until further notice." : "Acquire additional affection."
+        petStreak >= 10 ? "Remain unavailable." : "Secure another round."
       );
     }
     if (!reducedMotion.matches) {
@@ -296,16 +305,29 @@ export function bootstrapGallery(doc = document, win = window) {
     saveState();
   }
 
+  // An oracle that repeats itself twice running reads as broken rather than mystical,
+  // so the last fortune is excluded from the draw instead of trusting the shuffle.
+  let lastFortune = null;
+
+  function drawFortune() {
+    const pool = fortunes.filter((entry) => entry !== lastFortune);
+    const fortune = randomFrom(pool.length > 0 ? pool : fortunes);
+    lastFortune = fortune;
+    return fortune;
+  }
+
   function readFortune() {
-    const fortune = randomFrom(fortunes);
-    fortuneText.textContent = fortune;
+    const fortune = drawFortune();
+    const fromBird = fortune.from === "002";
+    fortuneText.textContent = fortune.text;
+    fortuneSource.textContent = `FORECAST · AGENT ${fortune.from}`;
     fortuneBox.hidden = false;
     fortuneBtn.setAttribute("aria-expanded", "true");
-    speech.textContent = "the oracle has spoken";
+    speech.textContent = fromBird ? "the small one consulted the weather." : "the oracle has spoken.";
     updateDossier(
-      "Forecasting delegated. Oversight bypassed.",
-      fortune,
-      "Act on unverifiable information."
+      fromBird ? "The small one filed a forecast." : "Forecast filed. Nobody asked for one.",
+      fortune.text,
+      "Act on it immediately."
     );
     unlockSticker("oracle");
     render();
@@ -390,17 +412,17 @@ export function bootstrapGallery(doc = document, win = window) {
       speech.textContent = "you caught the dot!";
       unlockSticker("laser");
       updateDossier(
-        "Moving target containment concluded.",
-        `${laserGame.score} dots contained. No paperwork filed.`,
-        "Maintain tactical readiness."
+        "The dot has been dealt with.",
+        `${laserGame.score} caught. The dot disputes the count.`,
+        "Stay ready."
       );
     } else {
       laserStatus.textContent = "The dot has other appointments.";
       speech.textContent = "we shall pretend that never happened.";
       updateDossier(
-        "Moving target containment concluded.",
-        "Target escaped. Report classified as success.",
-        "Avoid accountability."
+        "The dot has been dealt with.",
+        "The dot escaped. This is being called a success.",
+        "Move on quickly."
       );
     }
 
@@ -423,9 +445,9 @@ export function bootstrapGallery(doc = document, win = window) {
     laserDot.hidden = false;
     laserStatus.textContent = "Catch the dot. You have five seconds.";
     updateDossier(
-      "Moving target containment initiated.",
-      "Pursuit in progress.",
-      "Neutralize the red dot."
+      "The red dot is out.",
+      "Pursuit underway.",
+      "Catch the dot."
     );
     setLaserReadout(0, 5);
     placeLaserDot();
@@ -521,18 +543,18 @@ export function bootstrapGallery(doc = document, win = window) {
       unlockSticker("chaos");
       speech.textContent = "this is why museums have rules.";
       updateDossier(
-        "Incident authorized by incident.",
-        "Incident created successfully.",
-        "Increase entropy."
+        "One incident, self-authorized.",
+        "Everything is where it landed.",
+        "Rearrange the room."
       );
     } else {
       win.clearTimeout(incidentTimeout);
       doc.body.classList.remove("chaos-igniting");
       speech.textContent = "calm restored";
       updateDossier(
-        "Evidence rearranged into a straight line.",
-        "Incident declared intentional.",
-        "Appear professional."
+        "The evidence has been lined up neatly.",
+        "The incident is now intentional.",
+        "Look composed."
       );
     }
     render();
@@ -606,8 +628,8 @@ export function bootstrapGallery(doc = document, win = window) {
     kaomoji.textContent = "/ᐠ｡ꞈ｡ᐟ\\";
     speech.textContent = "the evidence has been professionally misplaced.";
     updateDossier(
-      "Records removed without authorization.",
-      "No evidence found. Excellent work.",
+      "Records misplaced. Convincingly.",
+      "Nothing on file. Excellent work.",
       "Occupy the warmest rectangle."
     );
     render();
@@ -638,5 +660,5 @@ export function bootstrapGallery(doc = document, win = window) {
 
   render();
   setLaserReadout(0, 5);
-  win.console.log("Cat Operations v2 loaded. No human found.");
+  win.console.log("Cat Operations v2. Two agents on file. Mind the keyboard.");
 }

@@ -78,6 +78,20 @@ Check hierarchy, wrapping, borders, spacing, and whether the page still belongs 
 
 Stop only the server process you started after visual inspection. Do not leave local browser or static-server processes running.
 
+### Text length is a layout dimension
+
+The page loads Playfair Display and Space Mono from Google Fonts. An agent sandbox often cannot reach them, so the browser falls back to locally installed fonts and every measurement taken there is a measurement of different glyph widths than the ones CI and visitors get. Line counts, and anything downstream of them, can differ.
+
+This matters because the mobile layout is tight: the phone test requires the tools row to stay above 844px on first visit, and a single extra wrapped line costs about 20px. Editing a line of copy is therefore a layout change. When a headline, label, or the speech bubble grows, verify it, and prefer assertions on rendered line boxes over assertions on pixel positions:
+
+```js
+const range = document.createRange();
+range.selectNodeContents(element);
+range.getClientRects().length; // line boxes, whichever font arrived
+```
+
+A line-box count is the same answer in both font worlds; a height in pixels is not. To reproduce real metrics locally, fetch the stylesheet and its woff2 files over the network layer that does work, then serve them into the page through request interception.
+
 ## Diagnose contradictions before treating them
 
 When browser output disagrees with the working tree, first ask which bytes the browser received. The useful chain is:
