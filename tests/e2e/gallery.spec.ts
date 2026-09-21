@@ -82,13 +82,15 @@ test("loads page and core controls", async ({ page }) => {
   await expect(page.locator("#hero-cat")).toBeVisible();
   await expect(page.locator("#shimaenaga")).toBeVisible();
   await expect(page.locator("#objective")).toHaveText("Occupy the warmest rectangle.");
+  // The default speech bubble is the only place that tells a visitor Agent 002 is clickable.
+  await expect(page.locator("#speech")).toHaveText("pet the lead agent. greet the small one.");
   await expect(page.locator("#fortune-btn")).toBeVisible();
   await expect(page.locator("#laser-btn")).toBeVisible();
   await expect(page.locator("#chaos-btn")).toBeVisible();
   await expect(page.locator("#sticker-gallery")).toBeHidden();
   await expect(page.locator("#fortune-box")).toBeHidden();
   await expect(page.locator("#laser-game")).toBeHidden();
-  await expect(page.locator("footer")).toContainText("NO HUMAN PRESENT · CATS RUNNING FREE");
+  await expect(page.locator("footer")).toContainText("NO HUMAN PRESENT · TWO AGENTS RUNNING FREE");
   await expect(page).toHaveTitle("Purr/spective · richard4912");
   await expect(page.locator("body")).not.toContainText(/Richard Liu|Stripe|Senior Software Engineer/);
   await expect(page.locator("body")).not.toContainText(/Recruiting|recruiting/i);

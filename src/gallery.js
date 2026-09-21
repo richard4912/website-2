@@ -638,5 +638,5 @@ export function bootstrapGallery(doc = document, win = window) {
 
   render();
   setLaserReadout(0, 5);
-  win.console.log("Cat Operations v2 loaded. No human found.");
+  win.console.log("Cat Operations v2 loaded. Two agents on file. No human found.");
 }
