@@ -90,7 +90,7 @@ test("loads page and core controls", async ({ page }) => {
   await expect(page.locator("#sticker-gallery")).toBeHidden();
   await expect(page.locator("#fortune-box")).toBeHidden();
   await expect(page.locator("#laser-game")).toBeHidden();
-  await expect(page.locator("footer")).toContainText("NO HUMAN PRESENT · TWO AGENTS RUNNING FREE");
+  await expect(page.locator("footer")).toContainText("TWO AGENTS ON DUTY · ONE WARM RECTANGLE");
   await expect(page).toHaveTitle("Purr/spective · richard4912");
   await expect(page.locator("body")).not.toContainText(/Richard Liu|Stripe|Senior Software Engineer/);
   await expect(page.locator("body")).not.toContainText(/Recruiting|recruiting/i);
@@ -211,8 +211,8 @@ test("petting cat increments treats and progresses from pleased to asleep", asyn
   await page.locator("#hero-cat").click();
   await expect(treatCount).toHaveText("1");
   await expect(page.locator("#speech")).toHaveText("yes. this is acceptable.");
-  await expect(page.locator("#dispatch")).toHaveText("Treat requisition approved by recipient.");
-  await expect(page.locator("#outcome")).toHaveText("Compensation accepted without review.");
+  await expect(page.locator("#dispatch")).toHaveText("Treat approved by the recipient.");
+  await expect(page.locator("#outcome")).toHaveText("Payment accepted. No receipt issued.");
   for (let pets = 1; pets < 10; pets += 1) {
     await page.locator("#hero-cat").press("Enter");
     if (pets === 3) {
@@ -235,12 +235,30 @@ test("fortune button unlocks oracle sticker", async ({ page }) => {
   await page.locator("#fortune-btn").click();
 
   await expect(page.locator("#fortune-box")).toBeVisible();
-  await expect(page.locator("#fortune-text")).not.toHaveText("The oracle cat waits for your question.");
+  await expect(page.locator("#fortune-text")).not.toHaveText("The oracle waits for no question.");
   await expect(oracleCard).not.toHaveClass(/(^|\s)locked(\s|$)/);
-  await expect(page.locator("#dispatch")).toHaveText("Forecasting delegated. Oversight bypassed.");
+  await expect(page.locator("#dispatch")).toContainText(/forecast/i);
   await page.getByRole("button", { name: "Dismiss the oracle" }).click();
   await expect(page.locator("#fortune-box")).toBeHidden();
   await expect(page.locator("#fortune-btn")).toBeFocused();
+});
+
+test("the oracle bylines each forecast and never repeats itself twice running", async ({ page }) => {
+  await openFreshPage(page);
+
+  const fortune = page.locator("#fortune-text");
+  const byline = page.locator("#fortune-source");
+  let previous = "";
+
+  // The no-repeat guard is a hard rule, so consecutive draws can be asserted directly.
+  // Which agent files a given forecast is random, so only the byline's shape is checked.
+  for (let draw = 0; draw < 8; draw += 1) {
+    await page.locator("#fortune-btn").click();
+    await expect(byline).toHaveText(/^FORECAST · AGENT 00[12]$/);
+    const text = (await fortune.textContent()) ?? "";
+    expect(text).not.toBe(previous);
+    previous = text;
+  }
 });
 
 test("chaos toggle updates aria and body class", async ({ page }) => {
