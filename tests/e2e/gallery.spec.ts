@@ -83,7 +83,7 @@ test("loads page and core controls", async ({ page }) => {
   await expect(page.locator("#shimaenaga")).toBeVisible();
   await expect(page.locator("#objective")).toHaveText("Occupy the warmest rectangle.");
   // The default speech bubble is the only place that tells a visitor Agent 002 is clickable.
-  await expect(page.locator("#speech")).toHaveText("pet the lead agent. greet the small one.");
+  await expect(page.locator("#speech")).toHaveText("pet 001. greet 002.");
   await expect(page.locator("#fortune-btn")).toBeVisible();
   await expect(page.locator("#laser-btn")).toBeVisible();
   await expect(page.locator("#chaos-btn")).toBeVisible();
@@ -353,6 +353,14 @@ test("the first visit exposes the primary experience on a phone and the roster s
     })
   );
   expect(mastheadLines).toEqual([1, 1]);
+  // The bubble is only ~149px wide, so its greeting costs a line per 14 characters and
+  // every line moves the tools down. Two lines is what the fold budget below affords.
+  const speechLines = await page.locator("#speech").evaluate((el) => {
+    const range = document.createRange();
+    range.selectNodeContents(el);
+    return Array.from(range.getClientRects()).filter((rect) => rect.width > 1).length;
+  });
+  expect(speechLines).toBeLessThanOrEqual(2);
   const lastTool = await page.locator("#chaos-btn").boundingBox();
   expect((lastTool?.y ?? 844) + (lastTool?.height ?? 0)).toBeLessThanOrEqual(844);
   await page.locator(".roster summary").click();
