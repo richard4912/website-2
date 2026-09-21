@@ -342,6 +342,17 @@ test("the first visit exposes the primary experience on a phone and the roster s
   await page.setViewportSize({ width: 390, height: 844 });
   await openFreshPage(page);
   expect(await page.evaluate(() => document.documentElement.scrollWidth)).toBe(390);
+  // The masthead is the cheapest way to lose the fold: one word too many on either side
+  // wraps within its own div and pushes the whole page down a line. Element boxes stay
+  // the same width whether the text wrapped or not, so count rendered line boxes.
+  const mastheadLines = await page.locator(".site-header > div").evaluateAll((divs) =>
+    divs.map((div) => {
+      const range = document.createRange();
+      range.selectNodeContents(div);
+      return range.getClientRects().length;
+    })
+  );
+  expect(mastheadLines).toEqual([1, 1]);
   const lastTool = await page.locator("#chaos-btn").boundingBox();
   expect((lastTool?.y ?? 844) + (lastTool?.height ?? 0)).toBeLessThanOrEqual(844);
   await page.locator(".roster summary").click();
