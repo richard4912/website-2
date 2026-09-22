@@ -82,7 +82,9 @@ Stop only the server process you started after visual inspection. Do not leave l
 
 The page loads Playfair Display and Space Mono from Google Fonts. An agent sandbox often cannot reach them, so the browser falls back to locally installed fonts and every measurement taken there is a measurement of different glyph widths than the ones CI and visitors get. Line counts, and anything downstream of them, can differ.
 
-This matters because the mobile layout is tight: the phone test requires the tools row to stay above 844px on first visit, and a single extra wrapped line costs about 20px. Editing a line of copy is therefore a layout change. When a headline, label, or the speech bubble grows, verify it, and prefer assertions on rendered line boxes over assertions on pixel positions:
+This matters because the mobile layout is tight, and because the first screen has an explicit contract about what it must carry. The phone test requires the **dossier** to stay above 844px on first visit. The dossier is the only surface that reports what a click did—the treat counter sits behind the roster door—so a dossier below the fold lets the page look inert on a phone. The tools row is deliberately unprotected: reaching the toys may cost one scroll notch, which is cheaper than losing either agent or the record of what they just did.
+
+A single extra wrapped line costs about 20px, so editing a line of copy is a layout change. When a headline, label, or the speech bubble grows, verify it, and prefer assertions on rendered line boxes over assertions on pixel positions:
 
 ```js
 const range = document.createRange();

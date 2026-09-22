@@ -91,9 +91,12 @@ button:disabled { cursor: default; opacity: 0.48; }
 
 main { min-width: 0; }
 
+/* Column two carries two agents now, not one portrait with a decal on it, so it takes
+   the larger share. The wordmark funds that: it is the hero's biggest consumer of
+   width and height, and it reads as a masthead rather than a splash at this size. */
 .hero {
   display: grid;
-  grid-template-columns: minmax(0, 1.3fr) minmax(260px, 0.72fr);
+  grid-template-columns: minmax(0, 0.92fr) minmax(min(100%, 24rem), 1.08fr);
   grid-template-rows: auto auto;
   align-items: center;
   min-height: 0;
@@ -119,7 +122,7 @@ main { min-width: 0; }
 
 .hero-title {
   margin: 0;
-  font-size: clamp(5.6rem, 12.4vw, 12.5rem);
+  font-size: clamp(4.6rem, 9.4vw, 8.6rem);
   font-weight: 400;
   line-height: 0.72;
   letter-spacing: -0.085em;
@@ -144,34 +147,75 @@ main { min-width: 0; }
   transform: rotate(-3deg);
 }
 
-.agent-card {
+/* Both agents share one band. Agent 002 used to be positioned inside .agent-card and
+   sized as a fraction of the cat's portrait, which made her an accessory to it no
+   matter what behaviour she was given. She now has her own frame in the same row.
+
+   The columns are proportional rather than a fixed bird width: a vw-sized bird held
+   its own size while the portrait absorbed whatever space was left, so peer scale
+   survived at 390px and collapsed to a third of the portrait by 1440px. Expressed as
+   fractions, the ratio is the same at every width. */
+.agent-band {
   grid-column: 2;
   grid-row: 1;
   justify-self: end;
-  width: clamp(15rem, 30vw, 27rem);
-  margin: 0 0.9rem 0 0;
+  display: grid;
+  grid-template-columns: minmax(0, 0.68fr) minmax(0, 1fr);
+  align-items: end;
+  gap: clamp(0.7rem, 1.5vw, 1.5rem);
+  width: 100%;
   position: relative;
   z-index: 2;
+}
+
+.perch {
+  grid-column: 1;
+  align-self: end;
+  position: relative;
+}
+
+.agent-card {
+  grid-column: 2;
+  justify-self: end;
+  width: 100%;
+  position: relative;
   transform: rotate(1.2deg);
 }
 
-.shimaenaga-button {
+/* The two frames are peers, not twins: opposite rotations and opposite spot colours.
+   Identical treatment would read as a corporate team page. */
+.perch-frame {
+  position: relative;
+  border: 1px solid var(--line-strong);
+  padding: 0.7rem 0.6rem 1.5rem;
+  background: var(--paper-deep);
+  box-shadow: -0.7rem 0.7rem 0 var(--coral);
+  transform: rotate(-2.4deg);
+}
+
+.perch-frame::before {
   position: absolute;
-  top: -2.8rem;
-  right: -0.35rem;
-  z-index: 5;
-  width: clamp(5.5rem, 7.5vw, 7.5rem);
+  inset: 0.35rem;
+  border: 1px solid rgba(23, 23, 23, 0.14);
+  pointer-events: none;
+  content: "";
+}
+
+.shimaenaga-button {
+  position: relative;
+  z-index: 2;
+  display: block;
+  width: 100%;
   min-height: 44px;
   padding: 0;
-  transform: rotate(3deg);
-  transform-origin: 50% 80%;
-  filter: drop-shadow(0.3rem 0.35rem 0 rgba(21, 142, 145, 0.9));
+  transform-origin: 50% 85%;
+  filter: drop-shadow(0.25rem 0.3rem 0 rgba(21, 142, 145, 0.85));
   transition: transform 180ms ease, filter 180ms ease;
 }
 
 .shimaenaga-button:hover {
-  transform: translateY(-0.25rem) rotate(1deg);
-  filter: drop-shadow(0.4rem 0.5rem 0 rgba(239, 91, 76, 0.85));
+  transform: translateY(-0.3rem) rotate(-1.5deg);
+  filter: drop-shadow(0.35rem 0.45rem 0 rgba(239, 91, 76, 0.85));
 }
 
 .shimaenaga-button img {
@@ -183,8 +227,8 @@ main { min-width: 0; }
 
 .shimaenaga-label {
   position: absolute;
-  right: 0;
-  bottom: -0.15rem;
+  right: -0.35rem;
+  bottom: -1.15rem;
   border: 1px solid var(--ink);
   padding: 0.25rem 0.4rem;
   background: var(--acid);
@@ -199,9 +243,9 @@ main { min-width: 0; }
 .shimaenaga-button.celebrating { animation: bird-hop 620ms cubic-bezier(0.2, 0.9, 0.3, 1.25); }
 
 @keyframes bird-hop {
-  0%, 100% { transform: translateY(0) rotate(3deg); }
-  45% { transform: translateY(-1.7rem) rotate(-7deg) scale(1.08); }
-  70% { transform: translateY(-0.35rem) rotate(5deg); }
+  0%, 100% { transform: translateY(0) rotate(0deg); }
+  45% { transform: translateY(-1.7rem) rotate(-9deg) scale(1.08); }
+  70% { transform: translateY(-0.35rem) rotate(3deg); }
 }
 
 .portrait-frame {
@@ -273,6 +317,7 @@ main { min-width: 0; }
 }
 
 .speech-bubble {
+  grid-column: 1 / -1;
   width: fit-content;
   max-width: 94%;
   min-height: 2.25rem;
@@ -696,20 +741,20 @@ main { min-width: 0; }
   50%, 100% { background: transparent; }
 }
 
+/* Below ~920px the wordmark and two peer-scale agents cannot share a row: a two-column
+   hero left the band about 240px wide, which made both agents small rather than making
+   one of them subordinate. The masthead takes its own band and the desk takes the next,
+   so every width under 921px gives both agents the full measure. */
 @media (max-width: 920px) {
-  .hero {
-    grid-template-columns: minmax(0, 1fr) minmax(15rem, 0.65fr);
-    grid-template-rows: auto auto;
-    min-height: 0;
-    padding-top: 3rem;
+  .hero { display: block; padding: 3rem 0 1.5rem; }
+  .hero-title { font-size: clamp(3.6rem, 11vw, 7rem); }
+  .agent-band {
+    width: min(100%, 34rem);
+    margin: 1.4rem 0 0 auto;
+    gap: 0.7rem;
   }
-  /* 15vw let the title's ink run past its own grid track and under the portrait,
-     which paints above it. 13.5vw keeps the wordmark inside column one. */
-  /* The lower clamp bound, not the vw term, is what binds just above 600px, where the
-     portrait column claims its 15rem minimum and squeezes column one hardest. */
-  .hero-title { font-size: clamp(4.2rem, 12vw, 8.7rem); }
-  .agent-card { grid-column: 2; width: min(100%, 19rem); margin: 0; }
-  .dossier { grid-column: 1 / -1; grid-row: 2; width: 100%; margin-top: 2rem; }
+  .perch-frame { padding: 0.55rem 0.5rem 1.35rem; box-shadow: -0.5rem 0.5rem 0 var(--coral); }
+  .dossier { width: 100%; margin-top: 2rem; }
   .dossier dl { display: grid; grid-template-columns: repeat(3, 1fr); }
   .dossier dl > div { display: block; padding: 0.9rem; }
   .dossier dl > div + div { border-top: 0; border-left: 1px solid var(--line); }
@@ -726,24 +771,18 @@ main { min-width: 0; }
 
   .hero { display: block; padding: 1.25rem 0 0.55rem; }
   .eyebrow { margin-bottom: 0.8rem; font-size: 0.75rem; }
-  .hero-title { font-size: clamp(4.7rem, 23vw, 7rem); line-height: 0.73; }
-  .supervision-stamp { margin: 1.15rem 0 0 0.2rem; font-size: 0.75rem; }
-  /* The collage overlap moves off the wordmark and onto the stamp row: the portrait
-     sits beside SUPERVISION: ABSENT rather than across SPECTIVE. At this width the
-     title and a usable portrait cannot share a line without destroying one of them. */
-  /* The calc term is the guard that keeps the portrait clear of SUPERVISION: ABSENT,
-     which is a fixed pixel width. It only binds in the narrow band where it matters. */
-  .agent-card {
-    width: min(43vw, 11rem, calc(100vw - 14.5rem));
-    margin: -2.6rem 0 0 auto;
-    transform: rotate(1deg);
-  }
-  /* The label is a fixed-ish pixel width, so below ~600px it grew wider than the bird
-     and covered it. Shrink the tag and drop it clear of the body. */
-  /* Sized against the card rather than the root, so the bird stays in proportion to
-     the portrait it perches on instead of swallowing it at the narrowest widths. */
-  .shimaenaga-button { top: -0.3rem; right: -0.15rem; width: min(4.8rem, 42%); }
-  .shimaenaga-label { bottom: -0.5rem; padding: 0.15rem 0.3rem; font-size: 0.65rem; }
+  /* The wordmark pays for the agent band. It was clamp(4.7rem, 23vw, 7rem) over two
+     lines at 0.73 leading, which is the single largest block on the first screen and
+     is decorative after the first second. A masthead, not a splash. */
+  .hero-title { font-size: clamp(3.3rem, 16vw, 4.9rem); line-height: 0.75; }
+  .supervision-stamp { margin: 0.9rem 0 0 0.2rem; font-size: 0.75rem; }
+  /* Both agents sit in one row at peer scale. The old composition pulled the portrait
+     up over the stamp with a negative margin and guarded it with a calc() against
+     SUPERVISION: ABSENT; neither is needed once the band owns its own row. */
+  .agent-band { gap: 0.55rem; margin-top: 1rem; }
+  .agent-card { width: 100%; margin: 0; transform: rotate(1deg); }
+  .shimaenaga-label { right: -0.25rem; bottom: -1rem; padding: 0.15rem 0.3rem; font-size: 0.65rem; }
+  .perch-frame { padding: 0.45rem 0.4rem 1.2rem; box-shadow: -0.4rem 0.4rem 0 var(--coral); }
   .portrait-frame { box-shadow: 0.5rem 0.5rem 0 var(--teal); }
   .portrait-index { top: 0.65rem; left: 0.7rem; padding: 0.22rem 0.35rem; font-size: 0.62rem; }
   .cat-kaomoji { right: 0.45rem; bottom: 0.45rem; min-width: 4.4rem; font-size: 0.88rem; }
@@ -793,16 +832,15 @@ main { min-width: 0; }
   .recruiting-copy p, .recruiting-copy li { font-size: 1rem; line-height: 1.55; }
 }
 
-/* Below ~375px there is no room for a collage. Title, stamp and portrait stack
-   cleanly, and the surrounding rhythm tightens to keep the tool bay on first screen. */
+/* Below ~375px the rhythm tightens so the dossier still clears the fold. The band
+   keeps both agents side by side; stacking them would cost more height than it saves. */
 @media (max-width: 375px) {
   .hero { padding: 0.5rem 0 0.4rem; }
   .eyebrow { margin-bottom: 0.5rem; }
-  .hero-title { font-size: 3.9rem; }
-  .supervision-stamp { margin: 0.7rem 0 0 0.2rem; font-size: 0.7rem; }
-  .agent-card { width: min(52vw, 11rem); margin-top: 0.7rem; }
-  .shimaenaga-button { top: -1.5rem; width: min(4.6rem, 44%); }
-  .speech-bubble { margin-top: 0.45rem; }
+  .hero-title { font-size: 3.1rem; }
+  .supervision-stamp { margin: 0.6rem 0 0 0.2rem; font-size: 0.7rem; }
+  .agent-band { gap: 0.45rem; margin-top: 0.7rem; }
+  .speech-bubble { margin-top: 0.55rem; }
   .dossier { margin-top: 0.9rem; }
 }
 
