@@ -246,6 +246,7 @@ export function bootstrapGallery(doc = document, win = window) {
   const neonCat = doc.getElementById("neon-cat");
   const resetBtn = doc.getElementById("reset-btn");
   const resetStatus = doc.getElementById("reset-status");
+  const dossierStamp = doc.getElementById("dossier-stamp");
 
   if (
     !kaomoji ||
@@ -277,7 +278,8 @@ export function bootstrapGallery(doc = document, win = window) {
     !secretBanner ||
     !neonCat ||
     !resetBtn ||
-    !resetStatus
+    !resetStatus ||
+    !dossierStamp
   ) {
     return;
   }
@@ -312,6 +314,15 @@ export function bootstrapGallery(doc = document, win = window) {
   );
   const reducedMotion = win.matchMedia("(prefers-reduced-motion: reduce)");
 
+  // Nobody approves anything here, so the stamp is the paperwork approving itself.
+  const stampWords = createRotator([
+    "UNREVIEWED",
+    "FILED",
+    "NO OBJECTION RECEIVED",
+    "SELF-CERTIFIED",
+    "RETURNED TO SENDER"
+  ]);
+
   function updateDossier(nextDispatch, nextOutcome, nextObjective) {
     if (nextObjective) {
       objective.textContent = nextObjective;
@@ -322,6 +333,14 @@ export function bootstrapGallery(doc = document, win = window) {
     if (nextOutcome) {
       outcome.textContent = nextOutcome;
     }
+
+    // Restamping here rather than at each call site means every action that reports a
+    // result also gets a non-textual acknowledgement, which is the signal a
+    // reduced-motion visitor would otherwise be missing.
+    dossierStamp.textContent = stampWords();
+    dossierStamp.classList.remove("restamped");
+    void dossierStamp.offsetWidth;
+    dossierStamp.classList.add("restamped");
   }
 
   function saveState() {
