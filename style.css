@@ -1032,3 +1032,125 @@ main { min-width: 0; }
   .marginal { display: none; }
   .colophon { flex-direction: column; gap: 0.35rem; }
 }
+
+/* ---------------------------------------------------------------------------
+   Dispatches. The masthead says ISSUE 03, which implies 01 and 02; these are them.
+   --------------------------------------------------------------------------- */
+
+.dispatch-page .site-header div:last-child { color: var(--teal); }
+
+.dispatch-kicker {
+  margin: clamp(2rem, 5vw, 3.5rem) 0 0.9rem;
+  color: var(--muted);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+}
+
+.dispatch-kicker a { color: var(--coral); }
+
+.dispatch-title {
+  margin: 0;
+  font-size: clamp(2.8rem, 8vw, 5.5rem);
+  font-weight: 400;
+  line-height: 0.92;
+  letter-spacing: -0.04em;
+}
+
+.dispatch-dek {
+  max-width: 44ch;
+  margin: 1.1rem 0 0;
+  color: var(--muted);
+  font-size: clamp(1.05rem, 2.4vw, 1.3rem);
+  font-style: italic;
+  line-height: 1.45;
+}
+
+.dispatch-dossier { margin-top: clamp(1.8rem, 4vw, 2.6rem); }
+
+.dispatch-body {
+  max-width: 62ch;
+  margin-top: clamp(1.8rem, 4vw, 2.75rem);
+}
+
+.dispatch-body p {
+  margin: 0 0 1.15rem;
+  font-size: clamp(1.05rem, 2.2vw, 1.2rem);
+  line-height: 1.6;
+}
+
+/* The opening line carries the weight a lede should, without a second class name. */
+.dispatch-body p:first-child { font-size: clamp(1.2rem, 2.6vw, 1.42rem); line-height: 1.5; }
+
+.dispatch-index {
+  margin: clamp(1.8rem, 4vw, 2.75rem) 0 0;
+  padding: 0;
+  border-top: 4px solid var(--ink);
+  list-style: none;
+}
+
+.dispatch-entry { border-bottom: 1px solid var(--line); }
+
+.dispatch-entry a {
+  display: grid;
+  grid-template-columns: 9rem minmax(0, 1fr) 11rem;
+  align-items: baseline;
+  gap: 0.35rem 1.25rem;
+  padding: 1.25rem 0;
+  color: inherit;
+  text-decoration: none;
+}
+
+.dispatch-entry a:hover { background: var(--paper-deep); }
+.dispatch-entry a:hover .dispatch-entry-title { color: var(--coral); }
+
+.dispatch-entry-issue { color: var(--coral); font-size: 0.75rem; font-weight: 700; letter-spacing: 0.08em; }
+.dispatch-entry-title { font-size: clamp(1.3rem, 3vw, 1.75rem); }
+.dispatch-entry-dek { grid-column: 2; color: var(--muted); font-size: 0.98rem; font-style: italic; line-height: 1.45; }
+.dispatch-entry-filed { grid-column: 3; grid-row: 1; color: var(--muted); font-size: 0.75rem; text-align: right; }
+
+.dispatch-empty { margin-top: 2rem; color: var(--muted); font-size: 0.9rem; }
+
+/* The homepage pointer at the archive. Below the dossier by design: the first screen
+   belongs to the agents and the record of what they just did. */
+.archive-line {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 0.4rem 1.5rem;
+  margin: 1.1rem 0 0;
+  border-bottom: 1px solid var(--line);
+  padding-bottom: 0.9rem;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.archive-line a { color: var(--coral); }
+.archive-line span { color: var(--muted); }
+
+@media (max-width: 600px) {
+  .dispatch-entry a { grid-template-columns: minmax(0, 1fr); gap: 0.3rem; padding: 1rem 0; }
+  .dispatch-entry-dek, .dispatch-entry-filed { grid-column: 1; }
+  .dispatch-entry-filed { grid-row: auto; text-align: left; }
+}
+
+/* Links were inheriting the browser default, which is the one blue on the page. */
+a {
+  color: var(--coral);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 0.2em;
+}
+
+a:hover { text-decoration-thickness: 2px; }
+.site-footer a { color: var(--muted); }
+.site-footer a:hover { color: var(--coral); }
+
+/* On a filed dispatch the right-hand corner already carries CLOSED, so the stamp
+   takes the other side rather than landing on top of it. */
+.dispatch-dossier .dossier-stamp {
+  right: auto;
+  left: clamp(0.75rem, 4vw, 3rem);
+  transform: rotate(-4deg);
+}

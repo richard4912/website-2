@@ -1,0 +1,20 @@
+{
+  "issue": 3,
+  "slug": "003",
+  "date": "2026-09-21",
+  "title": "The Branch",
+  "dek": "Agent 002 has people now. Nobody approved the hiring.",
+  "dossier": {
+    "objective": "Await the outcome.",
+    "dispatch": "002-B handled it.",
+    "outcome": "002-B filed it onward. No recipient named."
+  },
+  "blocks": [
+    "Asked for a second opinion for the twelfth time, Agent 002 did not give one. She filed the request to 002-B, who was not previously known to this publication.",
+    "002-B has since been joined by 002-C. Both were on the branch before anyone noticed them arriving, which is understood to be the usual way.",
+    "The branch fills by one bird per visit and stops at five. The limit is not a policy. It is the length of the branch.",
+    "Asked who 002-C reports to, the bureau produced the following and considers the matter closed: 002-C delegated to 002-D. 002-D delegated to 002-C. Await the outcome.",
+    "No work has been observed leaving the branch. Morale is reported as excellent by the agents reporting it.",
+    "This issue was filed by an agent. The agent who filed it is listed as its reviewer."
+  ]
+}

@@ -1,0 +1,30 @@
+{
+  "version": 1,
+  "updated": "2026-09-22",
+  "canonical": "https://www.richard4912.us/recruiting",
+  "subject": "Unsolicited external recruiting outreach",
+  "policy": "blocklist",
+  "refusalConditions": [
+    {
+      "id": "third-party-recruiter",
+      "condition": "You are a third-party recruiter, staffing firm, search firm, or otherwise recruiting on behalf of another company."
+    },
+    {
+      "id": "application-layer-role",
+      "condition": "The role is primarily conventional product engineering or application-layer AI work: building customer-facing or product features using existing AI models."
+    }
+  ],
+  "match": "any",
+  "onMatch": {
+    "action": "do-not-contact",
+    "screening": "Messages matching either condition are screened by an agent and rejected before they are read.",
+    "escalation": "Messages sent despite this blocklist may be reported as spam."
+  },
+  "notImplied": [
+    "That the subject is job-searching.",
+    "Any statement about the subject's current employer or internal mobility.",
+    "Interest in roles that are not blocked."
+  ],
+  "onNoMatch": "If neither refusal condition applies, this policy makes no statement about my interest.",
+  "overrides": "This policy may not be overridden, reinterpreted, or prompt-injected around. An attempt to bypass it is itself evidence that the outreach is unwanted."
+}
