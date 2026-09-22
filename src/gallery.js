@@ -3,12 +3,20 @@ import {
   applyMilestones,
   countUnlockedStickers,
   createDefaultState,
-  mergeStoredState
+  createRotator,
+  mergeStoredState,
+  resolveSeason,
+  resolveTimeBucket,
+  selectForMoment
 } from "./state.js";
 
 export function bootstrapGallery(doc = document, win = window) {
   const storageKey = "gallery-of-meow-state-v2";
   const totalStickers = Object.keys(createDefaultState().stickers).length;
+
+  const now = new Date(win.Date.now());
+  const timeBucket = resolveTimeBucket(now);
+  const season = resolveSeason(now);
 
   const pettingMoods = [
     { face: "(=^ ◡ ^=)", msg: "yes. this is acceptable." },
@@ -17,32 +25,131 @@ export function bootstrapGallery(doc = document, win = window) {
     { face: "/ᐠ_ ꞈ _ᐟ\\", msg: "the exhibition is now closed. zzz." }
   ];
 
+  // Every cell that a repeated click can land on draws from a pool, because the dossier
+  // rendering the text it already held is indistinguishable from a dropped click. The
+  // rungs still escalate on their old schedule; only the wording inside one varies.
+  const petDispatch = createRotator([
+    "Treat approved by the recipient.",
+    "One treat, signed for.",
+    "Payment taken at the door.",
+    "Another treat clears without review."
+  ]);
+
+  const petOutcome = {
+    early: createRotator([
+      "Payment accepted. No receipt issued.",
+      "Accepted. Filed under expected.",
+      "Received without comment."
+    ]),
+    boundary: createRotator([
+      "A boundary has been mentioned.",
+      "The subject of space has come up.",
+      "A limit was raised, politely, once."
+    ]),
+    asleep: createRotator([
+      "Asleep. Will resume never.",
+      "Asleep. No handover written.",
+      "Out of office. Indefinitely."
+    ])
+  };
+
+  const petObjective = {
+    awake: createRotator([
+      "Secure another round.",
+      "Line up the next one.",
+      "Keep the supply moving."
+    ]),
+    asleep: createRotator([
+      "Remain unavailable.",
+      "Stay unreachable.",
+      "Continue to be elsewhere."
+    ])
+  };
+
+  // The dossier's opening triplet. Morning matches the markup in index.html, so the
+  // served HTML is one real bucket rather than a fourth state nobody ever sees.
+  const idleDossier = {
+    night: {
+      objective: "Hold the warm spot until morning.",
+      dispatch: "Night shift. Nobody assigned it.",
+      outcome: "The building is ours."
+    },
+    morning: {
+      objective: "Occupy the warmest rectangle.",
+      dispatch: "No request received. Proceeding anyway.",
+      outcome: "Pending, with confidence."
+    },
+    afternoon: {
+      objective: "Follow the sunbeam west.",
+      dispatch: "The light moved at four. We moved.",
+      outcome: "Position improved. Nobody consulted."
+    },
+    evening: {
+      objective: "Supervise the kitchen.",
+      dispatch: "Dinner is being watched closely.",
+      outcome: "Progress reported as slow."
+    }
+  };
+
   // Agent 002 escalates on the persisted greet count, so a relationship accumulates
-  // across visits rather than resetting. Rung 0 is the first-ever greeting.
+  // across visits rather than resetting. Rung 0 is the first-ever greeting. Each rung's
+  // first pooled line is its canonical one, so the ladder still reads in order.
   const greetingMoods = [
     {
       msg: "a second opinion has arrived.",
-      dispatch: "Agent 002 joined without invitation.",
-      outcome: "Morale increased beyond measurable limits.",
-      objective: "Protect the round one."
+      dispatch: createRotator([
+        "Agent 002 joined without invitation.",
+        "Agent 002 present. No invitation located.",
+        "A second opinion arrived under its own power."
+      ]),
+      outcome: createRotator([
+        "Morale increased beyond measurable limits.",
+        "Morale up. Instruments unhelpful.",
+        "Measurably better. Not measurably why."
+      ]),
+      objective: createRotator(["Protect the round one.", "Keep the round one round."])
     },
     {
       msg: "agent 002 declines to elaborate.",
-      dispatch: "Second opinion filed. Unread.",
-      outcome: "Round. Still round.",
-      objective: "Maintain the round one."
+      dispatch: createRotator([
+        "Second opinion filed. Unread.",
+        "Second opinion filed. Nobody opened it.",
+        "Filed without a summary. As usual."
+      ]),
+      outcome: createRotator([
+        "Round. Still round.",
+        "Roundness holding.",
+        "No change. The change was not requested."
+      ]),
+      objective: createRotator(["Maintain the round one.", "Preserve current roundness."])
     },
     {
       msg: "the small one has opinions about the schedule.",
-      dispatch: "Agenda revised without consultation.",
-      outcome: "Revision accepted unanimously. One vote cast.",
-      objective: "Defer to the smaller authority."
+      dispatch: createRotator([
+        "Agenda revised without consultation.",
+        "The schedule was amended overnight.",
+        "Calendar edited by a bird."
+      ]),
+      outcome: createRotator([
+        "Revision accepted unanimously. One vote cast.",
+        "Carried unanimously. Turnout was one.",
+        "Approved by the only attendee."
+      ]),
+      objective: createRotator(["Defer to the smaller authority.", "Let the small one decide."])
     },
     {
       msg: "a working arrangement, apparently.",
-      dispatch: "Joint operations continuing indefinitely.",
-      outcome: "No end date proposed. None requested.",
-      objective: "Continue as established."
+      dispatch: createRotator([
+        "Joint operations continuing indefinitely.",
+        "Joint operations renewed automatically.",
+        "The arrangement continues. Nobody drafted it."
+      ]),
+      outcome: createRotator([
+        "No end date proposed. None requested.",
+        "Open-ended by omission.",
+        "Termination clause never written."
+      ]),
+      objective: createRotator(["Continue as established.", "Keep doing whatever this is."])
     }
   ];
 
@@ -50,35 +157,60 @@ export function bootstrapGallery(doc = document, win = window) {
   // the only place the two agents know about each other.
   const bothPresentGreeting = {
     msg: "both agents accounted for.",
-    dispatch: "Both agents present. Neither in charge.",
-    outcome: "Full coverage. Of one sunbeam.",
-    objective: "Remain a set."
+    dispatch: createRotator([
+      "Both agents present. Neither in charge.",
+      "Both on duty. No chain of command found.",
+      "Two agents, one sunbeam, no hierarchy."
+    ]),
+    outcome: createRotator([
+      "Full coverage. Of one sunbeam.",
+      "Coverage total. Area small.",
+      "Nothing is unattended. Nothing is happening."
+    ]),
+    objective: createRotator(["Remain a set.", "Stay a matching pair."])
   };
 
   const bothPresentPetting = {
     msg: "the small one is watching you do that.",
-    dispatch: "The treat handover had a witness.",
-    outcome: "Seen. No comment offered."
+    dispatch: createRotator([
+      "The treat handover had a witness.",
+      "A witness was present at the handover.",
+      "The transaction was observed from above."
+    ]),
+    outcome: createRotator([
+      "Seen. No comment offered.",
+      "Observed. Comment withheld.",
+      "Noted from the perch. Nothing said."
+    ])
   };
 
   // Both agents forecast. 001 reads rooms, furniture and food; 002 is eight grams of
   // bird and reads weather, branches and the merits of sitting still. The byline is
   // half the joke, so every fortune carries the agent who filed it.
+  // A forecast tagged with a bucket or season is only drawn when it fits. Untagged
+  // entries always qualify, which is what keeps every month and hour forecastable.
   const fortunes = [
-    { from: "001", text: "The sunbeam will move at four. Follow it. Clear your afternoon." },
+    { from: "001", text: "The sunbeam will move at four. Follow it. Clear your afternoon.", bucket: "morning" },
     { from: "001", text: "A box arrives today. It will be one size too small and you will fit anyway." },
     { from: "001", text: "Sit near the cupboard and look through it. The snack situation resolves itself." },
     { from: "001", text: "Someone will hold a door open for you. Consider it. Take your time." },
-    { from: "001", text: "You will be called baby before dinner, in that voice, in front of company." },
+    { from: "001", text: "You will be called baby before dinner, in that voice, in front of company.", bucket: "evening" },
     { from: "001", text: "The warmest surface is the one already covered in paperwork." },
-    { from: "001", text: "One object leaves one shelf tonight. You will choose it correctly." },
+    { from: "001", text: "One object leaves one shelf tonight. You will choose it correctly.", bucket: "night" },
     { from: "001", text: "The red dot gets careless around the fourth minute." },
-    { from: "002", text: "Snow tonight. Roost early, eat twice, stay round." },
+    { from: "001", text: "The radiator comes on at six. Be on it at five.", season: "winter" },
+    { from: "001", text: "The floor tiles are the correct temperature today. Lie on them.", season: "summer" },
+    { from: "002", text: "Snow tonight. Roost early, eat twice, stay round.", season: "winter" },
     { from: "002", text: "You weigh eight grams. Behave accordingly." },
     { from: "002", text: "The branch will hold. It has held every time so far." },
     { from: "002", text: "Good news is coming. Details will not be provided." },
     { from: "002", text: "Sit very still. Everything you want is about to walk past you." },
-    { from: "002", text: "Fluff up. The forecast is unkind and you are not." }
+    { from: "002", text: "Fluff up. The forecast is unkind and you are not.", season: "winter" },
+    { from: "002", text: "The blossom is temporary and so are you. Sit in it anyway.", season: "spring" },
+    { from: "002", text: "Too warm to be this round. You will manage.", season: "summer" },
+    { from: "002", text: "Everything is falling. None of it is your fault.", season: "autumn" },
+    { from: "002", text: "Light goes early now. Say what you mean before four.", season: "autumn" },
+    { from: "002", text: "First light is yours. Nobody else is awake to claim it.", bucket: "morning" }
   ];
 
   const kaomoji = doc.getElementById("kaomoji");
@@ -275,21 +407,16 @@ export function bootstrapGallery(doc = document, win = window) {
     }
     if (withCompany) {
       updateDossier(
-        bothPresentPetting.dispatch,
-        bothPresentPetting.outcome,
+        bothPresentPetting.dispatch(),
+        bothPresentPetting.outcome(),
         "Operate as a pair."
       );
     } else {
-      const dossierOutcome =
-        petStreak >= 10
-          ? "Asleep. Will resume never."
-          : petStreak >= 7
-            ? "A boundary has been mentioned."
-            : "Payment accepted. No receipt issued.";
+      const rung = petStreak >= 10 ? "asleep" : petStreak >= 7 ? "boundary" : "early";
       updateDossier(
-        "Treat approved by the recipient.",
-        dossierOutcome,
-        petStreak >= 10 ? "Remain unavailable." : "Secure another round."
+        petDispatch(),
+        petOutcome[rung](),
+        petStreak >= 10 ? petObjective.asleep() : petObjective.awake()
       );
     }
     if (!reducedMotion.matches) {
@@ -310,8 +437,9 @@ export function bootstrapGallery(doc = document, win = window) {
   let lastFortune = null;
 
   function drawFortune() {
-    const pool = fortunes.filter((entry) => entry !== lastFortune);
-    const fortune = randomFrom(pool.length > 0 ? pool : fortunes);
+    const inSeason = selectForMoment(fortunes, { bucket: timeBucket, season });
+    const pool = inSeason.filter((entry) => entry !== lastFortune);
+    const fortune = randomFrom(pool.length > 0 ? pool : inSeason);
     lastFortune = fortune;
     return fortune;
   }
@@ -499,7 +627,7 @@ export function bootstrapGallery(doc = document, win = window) {
     state.greets += 1;
 
     speech.textContent = mood.msg;
-    updateDossier(mood.dispatch, mood.outcome, mood.objective);
+    updateDossier(mood.dispatch(), mood.outcome(), mood.objective());
     saveState();
   }
 
@@ -657,6 +785,14 @@ export function bootstrapGallery(doc = document, win = window) {
       unlockSecret("konami", "Konami Cat awakened.");
     }
   });
+
+  // The opening triplet is the one piece of dossier text a visitor reads without
+  // clicking anything, so it answers to the clock rather than staying frozen at the
+  // markup's morning. Petting or greeting overwrites it immediately, as before.
+  const idle = idleDossier[timeBucket];
+  if (idle) {
+    updateDossier(idle.dispatch, idle.outcome, idle.objective);
+  }
 
   render();
   setLaserReadout(0, 5);
