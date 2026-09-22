@@ -1,13 +1,16 @@
 import {
+  FLOCK_CAP,
   advanceSecretTrackers,
   applyMilestones,
   countUnlockedStickers,
   createDefaultState,
   createRotator,
   mergeStoredState,
+  registerVisit,
   resolveSeason,
   resolveTimeBucket,
-  selectForMoment
+  selectForMoment,
+  subAgentName
 } from "./state.js";
 
 export function bootstrapGallery(doc = document, win = window) {
@@ -217,6 +220,7 @@ export function bootstrapGallery(doc = document, win = window) {
   const speech = doc.getElementById("speech");
   const heroCat = doc.getElementById("hero-cat");
   const shimaenaga = doc.getElementById("shimaenaga");
+  const flockEl = doc.getElementById("flock");
   const objective = doc.getElementById("objective");
   const dispatch = doc.getElementById("dispatch");
   const outcome = doc.getElementById("outcome");
@@ -248,6 +252,7 @@ export function bootstrapGallery(doc = document, win = window) {
     !speech ||
     !heroCat ||
     !shimaenaga ||
+    !flockEl ||
     !objective ||
     !dispatch ||
     !outcome ||
@@ -385,6 +390,7 @@ export function bootstrapGallery(doc = document, win = window) {
     checkMilestones();
     updateHud();
     updateStickerGallery();
+    renderFlock();
   }
 
   function petCat() {
@@ -448,7 +454,13 @@ export function bootstrapGallery(doc = document, win = window) {
     const fortune = drawFortune();
     const fromBird = fortune.from === "002";
     fortuneText.textContent = fortune.text;
-    fortuneSource.textContent = `FORECAST · AGENT ${fortune.from}`;
+    // Once she delegates, her forecasts carry a sub-agent's byline. The byline already
+    // existed, so the whole joke costs one string.
+    const byline =
+      fromBird && state.greets >= DELEGATION_AFTER_GREETS && state.flock > 0
+        ? subAgentName(1 + Math.floor(Math.random() * state.flock))
+        : fortune.from;
+    fortuneSource.textContent = `FORECAST · AGENT ${byline}`;
     fortuneBox.hidden = false;
     fortuneBtn.setAttribute("aria-expanded", "true");
     speech.textContent = fromBird ? "the small one consulted the weather." : "the oracle has spoken.";
@@ -617,14 +629,65 @@ export function bootstrapGallery(doc = document, win = window) {
   }
 
   heroCat.addEventListener("click", petCat);
+
+  // Once the ladder is finished she stops answering and files the request onward. The
+  // way a small agent becomes a large one is not by getting bigger.
+  const DELEGATION_AFTER_GREETS = greetingMoods.length * 3;
+
+  function renderFlock() {
+    if (flockEl.childElementCount === state.flock) {
+      return;
+    }
+    flockEl.replaceChildren();
+    for (let position = 1; position <= state.flock; position += 1) {
+      const bird = doc.createElement("img");
+      bird.src = "assets/agent-002.webp";
+      bird.alt = "";
+      flockEl.append(bird);
+    }
+  }
+
+  function delegate() {
+    const filedTo = subAgentName(1 + Math.floor(Math.random() * state.flock));
+    // The cycle is the funny place for delegation to bottom out, and it needs two
+    // birds to be a cycle rather than a bird talking to itself.
+    if (state.flock >= 3 && Math.random() < 0.5) {
+      const first = subAgentName(state.flock - 1);
+      const second = subAgentName(state.flock);
+      return {
+        dispatch: `${first} delegated to ${second}.`,
+        outcome: `${second} delegated to ${first}.`,
+        objective: "Await the outcome."
+      };
+    }
+    return {
+      dispatch: `${filedTo} handled it.`,
+      outcome: `${filedTo} filed it onward. No recipient named.`,
+      objective: "Await the outcome."
+    };
+  }
+
   function greetAgentTwo() {
     const now = win.performance.now();
     const withCompany = engagedRecently(lastPetAt, now);
     lastGreetAt = now;
 
-    const rung = Math.min(Math.floor(state.greets / 3), greetingMoods.length - 1);
-    const mood = withCompany ? bothPresentGreeting : greetingMoods[rung];
+    const delegating = state.greets >= DELEGATION_AFTER_GREETS && state.flock > 0;
     state.greets += 1;
+
+    if (delegating && !withCompany) {
+      const filing = delegate();
+      speech.textContent =
+        state.flock >= FLOCK_CAP
+          ? "recursion limit reached. the branch is full."
+          : "she has people for this now.";
+      updateDossier(filing.dispatch, filing.outcome, filing.objective);
+      saveState();
+      return;
+    }
+
+    const rung = Math.min(Math.floor((state.greets - 1) / 3), greetingMoods.length - 1);
+    const mood = withCompany ? bothPresentGreeting : greetingMoods[rung];
 
     speech.textContent = mood.msg;
     updateDossier(mood.dispatch(), mood.outcome(), mood.objective());
@@ -865,6 +928,12 @@ export function bootstrapGallery(doc = document, win = window) {
   const idle = idleDossier[timeBucket];
   if (idle) {
     updateDossier(idle.dispatch, idle.outcome, idle.objective);
+  }
+
+  // The branch is the one thing on the page that differs because time passed rather
+  // than because the visitor did something. A reload is the same visit; tomorrow is not.
+  if (registerVisit(state, win.Date.now())) {
+    saveState();
   }
 
   render();

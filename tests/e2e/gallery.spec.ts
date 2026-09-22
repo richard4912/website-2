@@ -162,6 +162,96 @@ test.describe("stillness", () => {
   });
 });
 
+test.describe("the flock", () => {
+  const LATER = new Date("2026-01-16T09:30:00");
+
+  test("a first visit puts one bird on the branch and a reload adds none", async ({ page }) => {
+    await openFreshPage(page);
+
+    await expect(page.locator("#flock img")).toHaveCount(1);
+
+    await page.reload();
+    await expect(page.locator("#flock img")).toHaveCount(1);
+  });
+
+  test("a later visit finds the branch fuller", async ({ page }) => {
+    await openFreshPage(page);
+    await expect(page.locator("#flock img")).toHaveCount(1);
+
+    await page.clock.setFixedTime(LATER);
+    await page.reload();
+
+    await expect(page.locator("#flock img")).toHaveCount(2);
+  });
+
+  test("the branch stops at the cap", async ({ page }) => {
+    await openFreshPage(page);
+
+    for (let day = 1; day <= 9; day += 1) {
+      await page.clock.setFixedTime(new Date(Date.UTC(2026, 0, 16 + day, 9, 30)));
+      await page.reload();
+    }
+
+    await expect(page.locator("#flock img")).toHaveCount(5);
+  });
+
+  test("past the ladder she files the request onward instead of answering", async ({ page }) => {
+    await openFreshPage(page);
+    const bird = page.locator("#shimaenaga");
+
+    // The four-rung ladder spans twelve greetings; delegation begins after it.
+    for (let greet = 0; greet < 12; greet += 1) {
+      await bird.click();
+    }
+    await bird.click();
+
+    await expect(page.locator("#objective")).toHaveText("Await the outcome.");
+    await expect(page.locator("#dispatch")).toHaveText(/^002-[B-F] (handled it\.|delegated to 002-[B-F]\.)$/);
+    await expect(page.locator("#outcome")).toHaveText(/^002-[B-F] (filed it onward\. No recipient named\.|delegated to 002-[B-F]\.)$/);
+  });
+
+  test("a full branch reports its own limit", async ({ page }) => {
+    await openFreshPage(page);
+    for (let day = 1; day <= 6; day += 1) {
+      await page.clock.setFixedTime(new Date(Date.UTC(2026, 0, 16 + day, 9, 30)));
+      await page.reload();
+    }
+    await expect(page.locator("#flock img")).toHaveCount(5);
+
+    const bird = page.locator("#shimaenaga");
+    for (let greet = 0; greet < 13; greet += 1) {
+      await bird.click();
+    }
+
+    await expect(page.locator("#speech")).toHaveText("recursion limit reached. the branch is full.");
+  });
+
+  test("a sub-agent may carry the forecast byline", async ({ page }) => {
+    await openFreshPage(page);
+    const bird = page.locator("#shimaenaga");
+    for (let greet = 0; greet < 12; greet += 1) {
+      await bird.click();
+    }
+
+    // Either agent can be drawn, so this asserts the byline grammar rather than a name.
+    for (let draw = 0; draw < 12; draw += 1) {
+      await page.locator("#fortune-btn").click();
+      await expect(page.locator("#fortune-source")).toHaveText(/^FORECAST · AGENT (001|002(-[B-F])?)$/);
+    }
+  });
+
+  test("erasing evidence clears the branch", async ({ page }) => {
+    await openFreshPage(page);
+    await expect(page.locator("#flock img")).toHaveCount(1);
+
+    await page.locator(".roster summary").click();
+    await page.locator("#reset-btn").click();
+    await page.locator("#reset-btn").click();
+
+    await expect(page.locator("#flock img")).toHaveCount(0);
+  });
+});
+
 test("recruiting policy is a standalone, readable inbound-control page", async ({ page }) => {
   await page.goto("/recruiting/");
 

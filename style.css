@@ -201,6 +201,42 @@ main { min-width: 0; }
   content: "";
 }
 
+/* The branch sits in the gap above the perch, which exists because the band is
+   bottom-aligned and the portrait is the taller frame. Absolute, so however many birds
+   arrive they cost the band no height. Long-tailed tits really do line up like this. */
+.flock {
+  position: absolute;
+  top: -2.55rem;
+  left: 0;
+  right: 0;
+  display: flex;
+  align-items: flex-end;
+  gap: 2.5%;
+  pointer-events: none;
+}
+
+.flock::after {
+  position: absolute;
+  left: -6%;
+  right: -6%;
+  bottom: -0.2rem;
+  height: 1px;
+  background: var(--line-strong);
+  content: "";
+}
+
+.flock img {
+  width: 17%;
+  aspect-ratio: 1;
+  object-fit: contain;
+  filter: drop-shadow(0.1rem 0.12rem 0 rgba(21, 142, 145, 0.7));
+}
+
+/* Alternating tilt so a filled branch reads as several birds rather than one repeated
+   sprite. Nothing here animates: the delegation is the joke, not the swarm. */
+.flock img:nth-child(even) { transform: rotate(4deg); }
+.flock img:nth-child(odd) { transform: rotate(-3deg); }
+
 .shimaenaga-button {
   position: relative;
   z-index: 2;
