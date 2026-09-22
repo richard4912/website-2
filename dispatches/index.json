@@ -1,0 +1,27 @@
+{
+  "publication": "PURR/SPECTIVE",
+  "updated": "2026-09-21",
+  "dispatches": [
+    {
+      "issue": 3,
+      "slug": "003",
+      "date": "2026-09-21",
+      "title": "The Branch",
+      "dek": "Agent 002 has people now. Nobody approved the hiring."
+    },
+    {
+      "issue": 2,
+      "slug": "002",
+      "date": "2026-08-17",
+      "title": "A Second Opinion",
+      "dek": "Something round arrived at the window and did not leave."
+    },
+    {
+      "issue": 1,
+      "slug": "001",
+      "date": "2026-07-06",
+      "title": "The Warm Rectangle",
+      "dek": "Territory established. No claim filed with anyone."
+    }
+  ]
+}

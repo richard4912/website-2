@@ -68,7 +68,13 @@ async function heroGeometry(page: Page) {
   );
 }
 
-async function openFreshPage(page) {
+// The dossier's opening triplet and the forecast pool both read the clock, so every
+// test pins it. A winter weekday morning is the bucket the markup in index.html ships,
+// which keeps the served HTML and the booted page in agreement.
+const MORNING = new Date("2026-01-15T09:30:00");
+
+async function openFreshPage(page: Page, at: Date = MORNING) {
+  await page.clock.setFixedTime(at);
   await page.goto("/");
   await page.evaluate(() => {
     window.localStorage.clear();
@@ -96,6 +102,154 @@ test("loads page and core controls", async ({ page }) => {
   await expect(page.locator("body")).not.toContainText(/Recruiting|recruiting/i);
   await page.locator(".roster summary").click();
   await expect(page.locator("#sticker-gallery")).toBeVisible();
+});
+
+test("Agent 002 holds her own frame rather than the portrait's corner", async ({ page }) => {
+  await openFreshPage(page);
+
+  // She was positioned inside .agent-card and sized against it. Verbs alone could not
+  // fix that, so the structure is asserted: her frame is a sibling of the portrait's.
+  const nestedInsideCat = await page.evaluate(
+    () => document.querySelector(".agent-card")?.contains(document.querySelector("#shimaenaga")) ?? true
+  );
+  expect(nestedInsideCat).toBe(false);
+
+  await expect(page.locator(".perch-frame #shimaenaga")).toHaveCount(1);
+  await expect(page.locator(".agent-band > .perch")).toHaveCount(1);
+  await expect(page.locator(".agent-band > .agent-card")).toHaveCount(1);
+});
+
+// The dwell is seven seconds by design, so these wait through it rather than faking
+// timers: page.clock.install() would also fake the setTimeout the mechanic is built on.
+test.describe("stillness", () => {
+  test.setTimeout(45_000);
+
+  test("holding still brings Agent 002 over, and moving sends her back", async ({ page }) => {
+    await openFreshPage(page);
+    const bird = page.locator("#shimaenaga");
+    await page.mouse.move(240, 420);
+
+    await expect(bird).not.toHaveClass(/(^|\s)arrived(\s|$)/);
+    await expect(bird).toHaveClass(/(^|\s)arrived(\s|$)/, { timeout: 15_000 });
+    await expect(page.locator("#speech")).toHaveText("you stopped moving. she noticed.");
+    await expect(page.locator('[data-sticker="stillness"]')).not.toHaveClass(/(^|\s)locked(\s|$)/);
+
+    // Transform-only: the band must not have reflowed around her leaving the perch.
+    const perchWidth = await page.locator(".perch-frame").evaluate((el) => el.getBoundingClientRect().width);
+    expect(perchWidth).toBeGreaterThan(0);
+
+    await page.mouse.move(600, 260);
+    await expect(bird).not.toHaveClass(/(^|\s)arrived(\s|$)/);
+  });
+
+  test("a keyboard dwell reaches her too", async ({ page }) => {
+    await openFreshPage(page);
+    await page.locator("#shimaenaga").focus();
+
+    await expect(page.locator("#shimaenaga")).toHaveClass(/(^|\s)arrived(\s|$)/, { timeout: 15_000 });
+  });
+
+  test("reduced motion keeps the arrival and drops the flight", async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await openFreshPage(page);
+    await page.mouse.move(240, 420);
+
+    await expect(page.locator("#shimaenaga")).toHaveClass(/(^|\s)arrived(\s|$)/, { timeout: 15_000 });
+    const transitionSeconds = await page.locator("#shimaenaga").evaluate((el) =>
+      Number.parseFloat(window.getComputedStyle(el).transitionDuration)
+    );
+    expect(transitionSeconds).toBeLessThanOrEqual(0.00001);
+  });
+});
+
+test.describe("the flock", () => {
+  const LATER = new Date("2026-01-16T09:30:00");
+
+  test("a first visit puts one bird on the branch and a reload adds none", async ({ page }) => {
+    await openFreshPage(page);
+
+    await expect(page.locator("#flock img")).toHaveCount(1);
+
+    await page.reload();
+    await expect(page.locator("#flock img")).toHaveCount(1);
+  });
+
+  test("a later visit finds the branch fuller", async ({ page }) => {
+    await openFreshPage(page);
+    await expect(page.locator("#flock img")).toHaveCount(1);
+
+    await page.clock.setFixedTime(LATER);
+    await page.reload();
+
+    await expect(page.locator("#flock img")).toHaveCount(2);
+  });
+
+  test("the branch stops at the cap", async ({ page }) => {
+    await openFreshPage(page);
+
+    for (let day = 1; day <= 9; day += 1) {
+      await page.clock.setFixedTime(new Date(Date.UTC(2026, 0, 16 + day, 9, 30)));
+      await page.reload();
+    }
+
+    await expect(page.locator("#flock img")).toHaveCount(5);
+  });
+
+  test("past the ladder she files the request onward instead of answering", async ({ page }) => {
+    await openFreshPage(page);
+    const bird = page.locator("#shimaenaga");
+
+    // The four-rung ladder spans twelve greetings; delegation begins after it.
+    for (let greet = 0; greet < 12; greet += 1) {
+      await bird.click();
+    }
+    await bird.click();
+
+    await expect(page.locator("#objective")).toHaveText("Await the outcome.");
+    await expect(page.locator("#dispatch")).toHaveText(/^002-[B-F] (handled it\.|delegated to 002-[B-F]\.)$/);
+    await expect(page.locator("#outcome")).toHaveText(/^002-[B-F] (filed it onward\. No recipient named\.|delegated to 002-[B-F]\.)$/);
+  });
+
+  test("a full branch reports its own limit", async ({ page }) => {
+    await openFreshPage(page);
+    for (let day = 1; day <= 6; day += 1) {
+      await page.clock.setFixedTime(new Date(Date.UTC(2026, 0, 16 + day, 9, 30)));
+      await page.reload();
+    }
+    await expect(page.locator("#flock img")).toHaveCount(5);
+
+    const bird = page.locator("#shimaenaga");
+    for (let greet = 0; greet < 13; greet += 1) {
+      await bird.click();
+    }
+
+    await expect(page.locator("#speech")).toHaveText("recursion limit reached. the branch is full.");
+  });
+
+  test("a sub-agent may carry the forecast byline", async ({ page }) => {
+    await openFreshPage(page);
+    const bird = page.locator("#shimaenaga");
+    for (let greet = 0; greet < 12; greet += 1) {
+      await bird.click();
+    }
+
+    // Either agent can be drawn, so this asserts the byline grammar rather than a name.
+    for (let draw = 0; draw < 12; draw += 1) {
+      await page.locator("#fortune-btn").click();
+      await expect(page.locator("#fortune-source")).toHaveText(/^FORECAST · AGENT (001|002(-[B-F])?)$/);
+    }
+  });
+
+  test("erasing evidence clears the branch", async ({ page }) => {
+    await openFreshPage(page);
+    await expect(page.locator("#flock img")).toHaveCount(1);
+
+    await page.locator(".roster summary").click();
+    await page.locator("#reset-btn").click();
+    await page.locator("#reset-btn").click();
+
+    await expect(page.locator("#flock img")).toHaveCount(0);
+  });
 });
 
 test("recruiting policy is a standalone, readable inbound-control page", async ({ page }) => {
@@ -290,12 +444,12 @@ test("authorizing an incident fires a transient before settling into the skin", 
 test("the roster door reports a count rather than a rounded percentage", async ({ page }) => {
   await openFreshPage(page);
 
-  await expect(page.locator("#sticker-progress")).toHaveText("1 OF 8");
+  await expect(page.locator("#sticker-progress")).toHaveText("1 OF 9");
   await expect(page.locator(".summary-meta")).toContainText("ON FILE");
 
   await page.locator("#fortune-btn").click();
 
-  await expect(page.locator("#sticker-progress")).toHaveText("2 OF 8");
+  await expect(page.locator("#sticker-progress")).toHaveText("2 OF 9");
 });
 
 test("laser game starts and ends with button re-enabled", async ({ page }) => {
@@ -361,8 +515,13 @@ test("the first visit exposes the primary experience on a phone and the roster s
     return Array.from(range.getClientRects()).filter((rect) => rect.width > 1).length;
   });
   expect(speechLines).toBeLessThanOrEqual(2);
-  const lastTool = await page.locator("#chaos-btn").boundingBox();
-  expect((lastTool?.y ?? 844) + (lastTool?.height ?? 0)).toBeLessThanOrEqual(844);
+  // The first screen must carry the dossier. It is the only surface that reports what a
+  // click did — the treat counter is behind the roster door and not on screen — so a
+  // dossier below the fold means the page can look inert on a phone. The tools row is
+  // deliberately not protected: finding the toys costs one scroll notch, which is
+  // cheaper than either agent or the record of what they just did.
+  const dossier = await page.locator(".dossier").boundingBox();
+  expect((dossier?.y ?? 844) + (dossier?.height ?? 0)).toBeLessThanOrEqual(844);
   await page.locator(".roster summary").click();
   const first = await page.locator(".gallery-item").nth(0).boundingBox();
   const second = await page.locator(".gallery-item").nth(1).boundingBox();
@@ -489,6 +648,14 @@ for (const viewport of heroViewports) {
     expect(g.bird.top).toBeGreaterThanOrEqual(0);
     expect(g.bird.right).toBeLessThanOrEqual(g.clientWidth);
     expect(g.birdLabel.right).toBeLessThanOrEqual(g.clientWidth);
+
+    // Peer scale is the point of the band, and it is the property most easily lost by
+    // accident: when the bird had a vw width and the portrait took the remaining space,
+    // the ratio was 0.61 at 390px and 0.31 at 1440px while every other assertion passed.
+    const birdWidth = g.bird.right - g.bird.left;
+    const portraitWidth = g.portrait.right - g.portrait.left;
+    expect(birdWidth / portraitWidth, "Agent 002 smaller than peer scale").toBeGreaterThan(0.5);
+    expect(birdWidth / portraitWidth, "Agent 002 crowding out Agent 001").toBeLessThan(0.85);
 
     expect(g.scrollWidth).toBe(g.clientWidth);
   });

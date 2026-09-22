@@ -3,3 +3,7 @@ playwright-report/
 test-results/
 coverage/
 .DS_Store
+
+# Agent worktrees and scratch specs live here but belong to the session, not the site.
+.claude/
+AGENT-002-FLIGHT-SPEC.md

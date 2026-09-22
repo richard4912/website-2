@@ -30,22 +30,32 @@
           <p class="supervision-stamp mono">SELF-APPROVED</p>
         </div>
 
-        <div class="agent-card">
-          <button id="shimaenaga" class="shimaenaga-button" aria-label="Greet Agent 002, the shimaenaga">
-            <img src="assets/agent-002.webp" alt="">
-            <span class="shimaenaga-label mono" aria-hidden="true">AGENT 002</span>
-          </button>
-          <div class="portrait-frame">
-            <span class="portrait-index mono" aria-hidden="true">AGENT 001</span>
-            <button id="hero-cat" class="hero-cat" aria-label="Pet the lead cat" aria-describedby="speech">
-              <img src="assets/lead-agent.webp" alt="A skeptical Neva Masquerade cat rendered like an editorial screen print">
-              <span class="cat-kaomoji" id="kaomoji" aria-hidden="true">/ᐠ｡ꞈ｡ᐟ\</span>
-            </button>
+        <div class="agent-band">
+          <div class="perch">
+            <div class="perch-frame">
+              <button id="shimaenaga" class="shimaenaga-button" aria-label="Greet Agent 002, the shimaenaga">
+                <img src="assets/agent-002.webp" alt="A long-tailed tit rendered like an editorial screen print">
+                <span class="shimaenaga-label mono" aria-hidden="true">AGENT 002</span>
+              </button>
+              <div class="flock" id="flock" aria-hidden="true"></div>
+            </div>
           </div>
+
+          <div class="agent-card">
+            <div class="portrait-frame">
+              <span class="portrait-index mono" aria-hidden="true">AGENT 001</span>
+              <button id="hero-cat" class="hero-cat" aria-label="Pet the lead cat" aria-describedby="speech">
+                <img src="assets/lead-agent.webp" alt="A skeptical Neva Masquerade cat rendered like an editorial screen print">
+                <span class="cat-kaomoji" id="kaomoji" aria-hidden="true">/ᐠ｡ꞈ｡ᐟ\</span>
+              </button>
+            </div>
+          </div>
+
           <p class="speech-bubble" id="speech" role="status" aria-live="polite">pet 001. greet 002.</p>
         </div>
 
         <aside class="dossier" aria-label="Current operation">
+          <span class="stamp dossier-stamp mono" id="dossier-stamp" aria-hidden="true">UNREVIEWED</span>
           <div class="dossier-heading mono">
             <span>LIVE DOSSIER</span>
             <span class="status-mark"><span aria-hidden="true"></span>OPEN</span>
@@ -67,7 +77,13 @@
         </aside>
       </section>
 
+      <p class="archive-line mono">
+        <a href="dispatches/003">ISSUE 03 · THE BRANCH</a>
+        <span>Back issues in <a href="dispatches/">dispatches</a></span>
+      </p>
+
       <section class="tool-bay" aria-labelledby="tool-heading">
+        <p class="marginal mono" aria-hidden="true">002: three is plenty</p>
         <div class="section-label mono" id="tool-heading">TOOLS ON HAND</div>
         <div class="control-row">
           <button id="fortune-btn" aria-expanded="false" aria-controls="fortune-box">
@@ -108,9 +124,10 @@
       <details class="roster">
         <summary>
           <span>The rest of the staff</span>
-          <span class="summary-meta mono"><span id="sticker-progress">1 OF 8</span> ON FILE <span class="summary-caret" aria-hidden="true">↗</span></span>
+          <span class="summary-meta mono"><span id="sticker-progress">1 OF 9</span> ON FILE <span class="summary-caret" aria-hidden="true">↗</span></span>
         </summary>
         <div class="roster-intro">
+          <p class="marginal mono" aria-hidden="true">001: no comment</p>
           <p>Everyone here hired themselves.</p>
           <section class="status-panel mono" aria-label="Operation records">
             <div>TREAT BUDGET <span id="treat-count">0</span></div>
@@ -176,6 +193,14 @@
             <div class="item-specialty mono">UNSTRUCTURED OUTPUT</div>
             <div class="item-hint">Briefly left alone with a shelf.</div>
           </article>
+          <article class="gallery-item" data-sticker="stillness">
+            <div class="item-number mono">S-08</div>
+            <div class="item-kaomoji" aria-hidden="true">( ˘ ⌄ ˘ )</div>
+            <div class="item-locked mono">UNDISCOVERED</div>
+            <div class="item-title">THE STILLNESS</div>
+            <div class="item-specialty mono">PATIENT SURVEILLANCE</div>
+            <div class="item-hint">Eight grams. Waits you out.</div>
+          </article>
           <article class="gallery-item" data-sticker="secret">
             <div class="item-number mono">S-??</div>
             <div class="item-kaomoji" aria-hidden="true">(=ↀωↀ=)</div>
@@ -200,6 +225,11 @@
       <div>TWO AGENTS ON DUTY · ONE WARM RECTANGLE</div>
       <div>richard4912: offline</div>
     </footer>
+
+    <p class="colophon mono">
+      <span>Set in Playfair Display and Space Mono. Two colours, one pass, no proof pulled.</span>
+      <span class="folio">PURR<span aria-hidden="true">/</span>SPECTIVE · ISSUE 03 · P. 1</span>
+    </p>
   </div>
 
   <script type="module" src="./src/main.js"></script>
