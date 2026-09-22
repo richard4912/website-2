@@ -242,6 +242,16 @@ main { min-width: 0; }
 
 .shimaenaga-button.celebrating { animation: bird-hop 620ms cubic-bezier(0.2, 0.9, 0.3, 1.25); }
 
+/* Stillness. Declared after :hover so it wins at equal specificity, and transform-only
+   so crossing the page costs the band no layout. The reduced-motion block below drops
+   the transition, which leaves the arrival without the flight. */
+.shimaenaga-button.arrived {
+  z-index: 24;
+  transform: translate(var(--arrive-x, 0px), var(--arrive-y, 0px)) scale(0.62) rotate(-4deg);
+  transition: transform 1400ms cubic-bezier(0.22, 0.61, 0.36, 1);
+  filter: drop-shadow(0.3rem 0.4rem 0 rgba(239, 91, 76, 0.7));
+}
+
 @keyframes bird-hop {
   0%, 100% { transform: translateY(0) rotate(0deg); }
   45% { transform: translateY(-1.7rem) rotate(-9deg) scale(1.08); }
@@ -523,13 +533,15 @@ main { min-width: 0; }
 
 .gallery {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  /* Three columns, because the roster holds nine cards and 3x3 fills exactly. At four
+     columns the ninth card sat alone on a row with three empty cells. */
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   border-left: 1px solid var(--line);
   margin-top: 1.5rem;
 }
 
 /* Explicit rows so the number / glyph / status / specialty bands line up across all
-   eight cards regardless of lock state. The hint absorbs the slack at the bottom. */
+   nine cards regardless of lock state. The hint absorbs the slack at the bottom. */
 .gallery-item {
   display: grid;
   grid-template-rows: auto auto auto auto 1fr;
@@ -546,7 +558,7 @@ main { min-width: 0; }
 .item-locked, .item-title { grid-row: 3; }
 .item-specialty { grid-row: 4; }
 .item-hint { grid-row: 5; }
-.gallery-item:nth-child(-n + 4) { border-top: 1px solid var(--line); }
+.gallery-item:nth-child(-n + 3) { border-top: 1px solid var(--line); }
 .item-number { color: var(--muted); font-size: 0.75rem; text-align: left; }
 .item-kaomoji {
   display: grid;

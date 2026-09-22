@@ -119,6 +119,49 @@ test("Agent 002 holds her own frame rather than the portrait's corner", async ({
   await expect(page.locator(".agent-band > .agent-card")).toHaveCount(1);
 });
 
+// The dwell is seven seconds by design, so these wait through it rather than faking
+// timers: page.clock.install() would also fake the setTimeout the mechanic is built on.
+test.describe("stillness", () => {
+  test.setTimeout(45_000);
+
+  test("holding still brings Agent 002 over, and moving sends her back", async ({ page }) => {
+    await openFreshPage(page);
+    const bird = page.locator("#shimaenaga");
+    await page.mouse.move(240, 420);
+
+    await expect(bird).not.toHaveClass(/(^|\s)arrived(\s|$)/);
+    await expect(bird).toHaveClass(/(^|\s)arrived(\s|$)/, { timeout: 15_000 });
+    await expect(page.locator("#speech")).toHaveText("you stopped moving. she noticed.");
+    await expect(page.locator('[data-sticker="stillness"]')).not.toHaveClass(/(^|\s)locked(\s|$)/);
+
+    // Transform-only: the band must not have reflowed around her leaving the perch.
+    const perchWidth = await page.locator(".perch-frame").evaluate((el) => el.getBoundingClientRect().width);
+    expect(perchWidth).toBeGreaterThan(0);
+
+    await page.mouse.move(600, 260);
+    await expect(bird).not.toHaveClass(/(^|\s)arrived(\s|$)/);
+  });
+
+  test("a keyboard dwell reaches her too", async ({ page }) => {
+    await openFreshPage(page);
+    await page.locator("#shimaenaga").focus();
+
+    await expect(page.locator("#shimaenaga")).toHaveClass(/(^|\s)arrived(\s|$)/, { timeout: 15_000 });
+  });
+
+  test("reduced motion keeps the arrival and drops the flight", async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: "reduce" });
+    await openFreshPage(page);
+    await page.mouse.move(240, 420);
+
+    await expect(page.locator("#shimaenaga")).toHaveClass(/(^|\s)arrived(\s|$)/, { timeout: 15_000 });
+    const transitionSeconds = await page.locator("#shimaenaga").evaluate((el) =>
+      Number.parseFloat(window.getComputedStyle(el).transitionDuration)
+    );
+    expect(transitionSeconds).toBeLessThanOrEqual(0.00001);
+  });
+});
+
 test("recruiting policy is a standalone, readable inbound-control page", async ({ page }) => {
   await page.goto("/recruiting/");
 

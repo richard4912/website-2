@@ -642,6 +642,79 @@ export function bootstrapGallery(doc = document, win = window) {
     }, 700);
   });
 
+  // The laser rewards frantic clicking, so Agent 002 gets its inverse. Long enough to
+  // be a decision, short enough to happen by accident once, which is how anyone will
+  // find it. Any input at all resets it: the whole mechanic is not doing anything.
+  const STILLNESS_MS = 7000;
+  const stillnessArrival = createRotator([
+    "Agent 002 left the perch while nobody moved.",
+    "The perch is empty. She is closer than that.",
+    "She crossed the page during the quiet."
+  ]);
+  let stillnessTimer = null;
+  let stillnessPointer = null;
+
+  function releaseStillness() {
+    if (!shimaenaga.classList.contains("arrived")) {
+      return;
+    }
+    shimaenaga.classList.remove("arrived");
+    shimaenaga.style.removeProperty("--arrive-x");
+    shimaenaga.style.removeProperty("--arrive-y");
+  }
+
+  function arriveFromStillness() {
+    if (shimaenaga.classList.contains("arrived") || doc.hidden) {
+      return;
+    }
+
+    // Transform-only, measured from her resting box, so the band's layout never moves.
+    if (stillnessPointer) {
+      const rest = shimaenaga.getBoundingClientRect();
+      shimaenaga.style.setProperty("--arrive-x", `${Math.round(stillnessPointer.x - (rest.left + rest.width / 2))}px`);
+      shimaenaga.style.setProperty("--arrive-y", `${Math.round(stillnessPointer.y - (rest.top + rest.height / 2))}px`);
+    }
+    win.clearTimeout(shimaenagaAnimationTimeout);
+    shimaenaga.classList.remove("celebrating");
+    shimaenaga.classList.add("arrived");
+
+    speech.textContent = "you stopped moving. she noticed.";
+    updateDossier(
+      stillnessArrival(),
+      "Approach completed unobserved.",
+      "Hold still a little longer."
+    );
+    unlockSticker("stillness");
+    render();
+    saveState();
+  }
+
+  function restartStillness() {
+    releaseStillness();
+    win.clearTimeout(stillnessTimer);
+    stillnessTimer = win.setTimeout(arriveFromStillness, STILLNESS_MS);
+  }
+
+  for (const eventName of ["pointerdown", "wheel", "scroll", "keydown", "touchstart"]) {
+    doc.addEventListener(eventName, restartStillness, { passive: true });
+  }
+  doc.addEventListener("mousemove", (event) => {
+    stillnessPointer = { x: event.clientX, y: event.clientY };
+    restartStillness();
+  });
+  // A dwell on focus is the keyboard and touch equivalent: she cannot be a feature that
+  // only exists for people holding a mouse.
+  shimaenaga.addEventListener("focus", restartStillness);
+  doc.addEventListener("visibilitychange", () => {
+    if (doc.hidden) {
+      win.clearTimeout(stillnessTimer);
+      releaseStillness();
+    } else {
+      restartStillness();
+    }
+  });
+  restartStillness();
+
   fortuneBtn.addEventListener("click", readFortune);
   fortuneClose.addEventListener("click", () => {
     fortuneBox.hidden = true;
