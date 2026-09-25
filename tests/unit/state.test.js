@@ -1,14 +1,16 @@
 import { describe, expect, it } from "vitest";
 import {
+  CAT_MOODS,
   FLOCK_CAP,
   KONAMI_SEQUENCE,
+  MOOD_STICKERS,
   VISIT_GAP_MS,
   advanceSecretTrackers,
-  applyMilestones,
   countUnlockedStickers,
   createDefaultState,
   createRotator,
   mergeStoredState,
+  nextCatMood,
   registerVisit,
   resolveSeason,
   resolveTimeBucket,
@@ -20,8 +22,8 @@ describe("createDefaultState", () => {
   it("creates expected baseline shape", () => {
     const state = createDefaultState();
 
-    expect(state.treats).toBe(0);
-    expect(state.greets).toBe(0);
+    expect(state).not.toHaveProperty("treats");
+    expect(state).not.toHaveProperty("greets");
     expect(state.laserBest).toBe(0);
     expect(state.chaos).toBe(false);
     expect(state.stickers.stoic).toBe(true);
@@ -41,7 +43,6 @@ describe("mergeStoredState", () => {
   it("merges persisted chaos and nested keys", () => {
     const raw = JSON.stringify({
       chaos: true,
-      treats: 11,
       stickers: {
         oracle: true
       }
@@ -50,36 +51,52 @@ describe("mergeStoredState", () => {
     const state = mergeStoredState(raw);
 
     expect(state.chaos).toBe(true);
-    expect(state.treats).toBe(11);
     expect(state.stickers.stoic).toBe(true);
     expect(state.stickers.oracle).toBe(true);
   });
 
-  it("restores a persisted greet count and rejects a non-numeric one", () => {
-    expect(mergeStoredState(JSON.stringify({ greets: 7 })).greets).toBe(7);
-    expect(mergeStoredState(JSON.stringify({ greets: "lots" })).greets).toBe(0);
+  it("drops the retired treat and greet counts from older payloads", () => {
+    const state = mergeStoredState(JSON.stringify({ treats: 40, greets: 7, laserBest: 3 }));
+
+    expect(state).not.toHaveProperty("treats");
+    expect(state).not.toHaveProperty("greets");
+    expect(state.laserBest).toBe(3);
   });
 });
 
-describe("applyMilestones", () => {
-  it("unlocks stickers at 10, 25, and 50 treats", () => {
-    const state = createDefaultState();
+describe("nextCatMood", () => {
+  it("wakes from idle into contentment on the first tap", () => {
+    expect(nextCatMood("idle", false, () => 0.99)).toBe("content");
+    expect(nextCatMood("idle", true, () => 0.99)).toBe("content");
+  });
 
-    state.treats = 9;
-    expect(applyMilestones(state)).toEqual([]);
-    expect(state.stickers.greeting).toBe(false);
+  it("lets quick taps climb to annoyance", () => {
+    let mood = "idle";
+    for (let tap = 0; tap < 3; tap += 1) {
+      mood = nextCatMood(mood, true, () => 0);
+    }
+    expect(mood).toBe("annoyed");
+  });
 
-    state.treats = 10;
-    expect(applyMilestones(state)).toEqual(["greeting"]);
-    expect(state.stickers.greeting).toBe(true);
+  it("lets slow taps reach sleep and come back from it", () => {
+    expect(nextCatMood("content", false, () => 0.99)).toBe("asleep");
+    expect(nextCatMood("asleep", false, () => 0.99)).toBe("content");
+  });
 
-    state.treats = 25;
-    expect(applyMilestones(state)).toEqual(["anger"]);
-    expect(state.stickers.anger).toBe(true);
+  it("only ever returns a known mood", () => {
+    for (const mood of ["idle", ...CAT_MOODS, "unknown"]) {
+      for (const quick of [false, true]) {
+        for (const roll of [0, 0.25, 0.5, 0.75, 0.999999]) {
+          expect(CAT_MOODS).toContain(nextCatMood(mood, quick, () => roll));
+        }
+      }
+    }
+  });
 
-    state.treats = 50;
-    expect(applyMilestones(state)).toEqual(["doze"]);
-    expect(state.stickers.doze).toBe(true);
+  it("maps the three mood stickers onto real moods", () => {
+    for (const mood of Object.keys(MOOD_STICKERS)) {
+      expect(CAT_MOODS).toContain(mood);
+    }
   });
 });
 

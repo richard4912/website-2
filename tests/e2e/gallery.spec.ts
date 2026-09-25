@@ -82,6 +82,14 @@ async function openFreshPage(page: Page, at: Date = MORNING) {
   await page.reload();
 }
 
+// The agents draw their lines at random. Pinning Math.random makes a test's path
+// through the pools and the mood table repeatable; it must run before the page's module.
+async function pinRandom(page: Page, value: number) {
+  await page.addInitScript((pinned) => {
+    Math.random = () => pinned;
+  }, value);
+}
+
 test("loads page and core controls", async ({ page }) => {
   await openFreshPage(page);
 
@@ -195,22 +203,23 @@ test.describe("the flock", () => {
     await expect(page.locator("#flock img")).toHaveCount(5);
   });
 
-  test("past the ladder she files the request onward instead of answering", async ({ page }) => {
+  test("with sub-agents on the branch she sometimes files the request onward", async ({ page }) => {
+    await pinRandom(page, 0);
     await openFreshPage(page);
     const bird = page.locator("#shimaenaga");
 
-    // The four-rung ladder spans twelve greetings; delegation begins after it.
-    for (let greet = 0; greet < 12; greet += 1) {
-      await bird.click();
-    }
+    // The first greeting of a visit is always hers to answer.
     await bird.click();
+    await expect(page.locator("#dispatch")).toHaveText("Agent 002 acknowledged you.");
 
+    await bird.click();
     await expect(page.locator("#objective")).toHaveText("Await the outcome.");
     await expect(page.locator("#dispatch")).toHaveText(/^002-[B-F] (handled it\.|delegated to 002-[B-F]\.)$/);
     await expect(page.locator("#outcome")).toHaveText(/^002-[B-F] (filed it onward\. No recipient named\.|delegated to 002-[B-F]\.)$/);
   });
 
   test("a full branch reports its own limit", async ({ page }) => {
+    await pinRandom(page, 0);
     await openFreshPage(page);
     for (let day = 1; day <= 6; day += 1) {
       await page.clock.setFixedTime(new Date(Date.UTC(2026, 0, 16 + day, 9, 30)));
@@ -219,19 +228,14 @@ test.describe("the flock", () => {
     await expect(page.locator("#flock img")).toHaveCount(5);
 
     const bird = page.locator("#shimaenaga");
-    for (let greet = 0; greet < 13; greet += 1) {
-      await bird.click();
-    }
+    await bird.click();
+    await bird.click();
 
-    await expect(page.locator("#speech")).toHaveText("recursion limit reached. the branch is full.");
+    await expect(page.locator("#speech")).toHaveText("the branch is full.");
   });
 
   test("a sub-agent may carry the forecast byline", async ({ page }) => {
     await openFreshPage(page);
-    const bird = page.locator("#shimaenaga");
-    for (let greet = 0; greet < 12; greet += 1) {
-      await bird.click();
-    }
 
     // Either agent can be drawn, so this asserts the byline grammar rather than a name.
     for (let draw = 0; draw < 12; draw += 1) {
@@ -280,53 +284,40 @@ test("Agent 002 briefly takes over the dossier", async ({ page }) => {
 
   await page.locator("#shimaenaga").click();
 
-  await expect(page.locator("#objective")).toHaveText("Protect the round one.");
-  await expect(page.locator("#dispatch")).toHaveText("Agent 002 joined without invitation.");
-  await expect(page.locator("#outcome")).toHaveText("Morale increased beyond measurable limits.");
-  await expect(page.locator("#speech")).toHaveText("a second opinion has arrived.");
+  await expect(page.locator("#objective")).toHaveText("Stay round.");
+  await expect(page.locator("#dispatch")).toHaveText("Agent 002 acknowledged you.");
+  await expect(page.locator("#outcome")).toHaveText("Still round.");
+  await expect(page.locator("#speech")).toHaveText("she fluffs up.");
 });
 
-test("Agent 002 escalates across repeat greetings", async ({ page }) => {
+// No counter decides what she says, so the only promise is that a tap never lands on
+// the line it replaced: that would read as a dropped click.
+test("repeat greetings never repeat the previous line", async ({ page }) => {
+  await pinRandom(page, 0.9);
   await openFreshPage(page);
 
   const bird = page.locator("#shimaenaga");
-  await bird.click();
-  await expect(page.locator("#speech")).toHaveText("a second opinion has arrived.");
-
-  for (let greet = 0; greet < 3; greet += 1) {
+  let previous = await page.locator("#speech").textContent();
+  for (let greet = 0; greet < 8; greet += 1) {
     await bird.click();
+    await expect(page.locator("#speech")).not.toHaveText(previous ?? "");
+    previous = await page.locator("#speech").textContent();
   }
-
-  await expect(page.locator("#speech")).toHaveText("agent 002 declines to elaborate.");
-  await expect(page.locator("#objective")).toHaveText("Maintain the round one.");
-});
-
-test("Agent 002 escalation survives a reload", async ({ page }) => {
-  await openFreshPage(page);
-
-  const bird = page.locator("#shimaenaga");
-  for (let greet = 0; greet < 3; greet += 1) {
-    await bird.click();
-  }
-
-  await page.reload();
-  await bird.click();
-
-  await expect(page.locator("#speech")).toHaveText("agent 002 declines to elaborate.");
 });
 
 test("the two agents notice each other when both are engaged", async ({ page }) => {
+  await pinRandom(page, 0.5);
   await openFreshPage(page);
 
   await page.locator("#hero-cat").click();
   await page.locator("#shimaenaga").click();
 
-  await expect(page.locator("#speech")).toHaveText("both agents accounted for.");
-  await expect(page.locator("#objective")).toHaveText("Remain a set.");
+  await expect(page.locator("#speech")).toHaveText(/^(both of them, watching you|the cat saw that|two agents, one window)\.$/);
+  await expect(page.locator("#objective")).toHaveText(/^(Remain a set|Stay a matching pair)\.$/);
 
   await page.locator("#hero-cat").click();
 
-  await expect(page.locator("#speech")).toHaveText("the small one is watching you do that.");
+  await expect(page.locator("#speech")).toHaveText(/^(the small one is watching|observed from the branch|002 saw that)\.$/);
   await expect(page.locator("#objective")).toHaveText("Operate as a pair.");
 });
 
@@ -356,28 +347,38 @@ test("pointer drift does not cancel the pet squash", async ({ page }) => {
   expect(channels.driftAfterDrift).not.toBe("");
 });
 
-test("petting cat increments treats and progresses from pleased to asleep", async ({ page }) => {
+test("each tap changes the cat's state, and quick taps wear its patience", async ({ page }) => {
+  await pinRandom(page, 0);
   await openFreshPage(page);
 
-  const treatCount = page.locator("#treat-count");
-  await expect(treatCount).toHaveText("0");
+  await expect(page.locator("#treat-count")).toHaveCount(0);
+  const cat = page.locator("#hero-cat");
 
-  await page.locator("#hero-cat").click();
-  await expect(treatCount).toHaveText("1");
-  await expect(page.locator("#speech")).toHaveText("yes. this is acceptable.");
-  await expect(page.locator("#dispatch")).toHaveText("Treat approved by the recipient.");
-  await expect(page.locator("#outcome")).toHaveText("Payment accepted. No receipt issued.");
-  for (let pets = 1; pets < 10; pets += 1) {
-    await page.locator("#hero-cat").press("Enter");
-    if (pets === 3) {
-      await expect(page.locator("#speech")).toHaveText("you may continue.");
-    }
-    if (pets === 6) {
-      await expect(page.locator("#speech")).toHaveText("we have discussed personal space.");
-    }
-  }
-  await expect(treatCount).toHaveText("10");
-  await expect(page.locator("#speech")).toHaveText("the exhibition is now closed. zzz.");
+  await cat.click();
+  await expect(page.locator("#kaomoji")).toHaveText("(=^ ◡ ^=)");
+  await expect(page.locator("#speech")).toHaveText("slow blink.");
+  await expect(page.locator("#dispatch")).toHaveText("Contact made. Received well.");
+  await expect(page.locator('[data-sticker="greeting"]')).not.toHaveClass(/(^|\s)locked(\s|$)/);
+
+  // Back-to-back key presses land well inside the quick-tap window.
+  await cat.press("Enter");
+  await expect(page.locator("#kaomoji")).toHaveText("/ᐠ｡ꞈ｡ᐟ\\");
+  await cat.press("Enter");
+  await expect(page.locator("#kaomoji")).toHaveText("(=｀ω´=)");
+  await expect(page.locator('[data-sticker="anger"]')).not.toHaveClass(/(^|\s)locked(\s|$)/);
+});
+
+test("slow taps can put the cat to sleep", async ({ page }) => {
+  await pinRandom(page, 0.9);
+  await openFreshPage(page);
+  const cat = page.locator("#hero-cat");
+
+  await cat.click();
+  await page.clock.runFor(1500);
+  await cat.click();
+
+  await expect(page.locator("#kaomoji")).toHaveText("/ᐠ_ ꞈ _ᐟ\\");
+  await expect(page.locator('[data-sticker="doze"]')).not.toHaveClass(/(^|\s)locked(\s|$)/);
 });
 
 test("fortune button unlocks oracle sticker", async ({ page }) => {
@@ -408,7 +409,7 @@ test("the oracle bylines each forecast and never repeats itself twice running", 
   // Which agent files a given forecast is random, so only the byline's shape is checked.
   for (let draw = 0; draw < 8; draw += 1) {
     await page.locator("#fortune-btn").click();
-    await expect(byline).toHaveText(/^FORECAST · AGENT 00[12]$/);
+    await expect(byline).toHaveText(/^FORECAST · AGENT (001|002(-[B-F])?)$/);
     const text = (await fortune.textContent()) ?? "";
     expect(text).not.toBe(previous);
     previous = text;
@@ -471,14 +472,13 @@ test("laser game starts and ends with button re-enabled", async ({ page }) => {
 test("state persists across reload via localStorage", async ({ page }) => {
   await openFreshPage(page);
 
-  const treatCount = page.locator("#treat-count");
+  const progress = page.locator("#sticker-progress");
   await page.locator("#hero-cat").click();
-  await page.locator("#hero-cat").click();
-  await expect(treatCount).toHaveText("2");
+  await expect(progress).toHaveText("2 OF 9");
 
   await page.reload();
 
-  await expect(treatCount).toHaveText("2");
+  await expect(progress).toHaveText("2 OF 9");
 });
 
 test("typing meow unlocks secret sticker", async ({ page }) => {
@@ -515,11 +515,11 @@ test("the first visit exposes the primary experience on a phone and the roster s
     return Array.from(range.getClientRects()).filter((rect) => rect.width > 1).length;
   });
   expect(speechLines).toBeLessThanOrEqual(2);
-  // The first screen must carry the dossier. It is the only surface that reports what a
-  // click did — the treat counter is behind the roster door and not on screen — so a
-  // dossier below the fold means the page can look inert on a phone. The tools row is
-  // deliberately not protected: finding the toys costs one scroll notch, which is
-  // cheaper than either agent or the record of what they just did.
+  // The first screen must carry the dossier. Besides the two-line speech bubble it is the
+  // only surface that reports what a click did, so a dossier below the fold means the
+  // page can look inert on a phone. The tools row is deliberately not protected: finding
+  // the toys costs one scroll notch, which is cheaper than either agent or the record
+  // of what they just did.
   const dossier = await page.locator(".dossier").boundingBox();
   expect((dossier?.y ?? 844) + (dossier?.height ?? 0)).toBeLessThanOrEqual(844);
   await page.locator(".roster summary").click();
@@ -577,17 +577,17 @@ test("erasing evidence requires confirmation and resets persisted progress", asy
   const resetButton = page.locator("#reset-btn");
   await resetButton.click();
   await expect(resetButton).toHaveText("Confirm disappearance");
-  await expect(page.locator("#treat-count")).toHaveText("1");
+  await expect(page.locator("#sticker-progress")).toHaveText("3 OF 9");
 
   await resetButton.click();
   await expect(resetButton).toHaveText("Erase evidence");
   await expect(page.locator("#reset-status")).toHaveText("Case file erased.");
-  await expect(page.locator("#treat-count")).toHaveText("0");
+  await expect(page.locator("#sticker-progress")).toHaveText("1 OF 9");
   await expect(page.locator("body")).not.toHaveClass(/chaos-mode/);
   await expect(page.locator('[data-sticker="chaos"] .item-locked')).toBeVisible();
 
   await page.reload();
-  await expect(page.locator("#treat-count")).toHaveText("0");
+  await expect(page.locator("#sticker-progress")).toHaveText("1 OF 9");
   await expect(page.locator("body")).not.toHaveClass(/chaos-mode/);
 });
 
