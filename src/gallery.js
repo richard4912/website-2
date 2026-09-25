@@ -36,20 +36,28 @@ export function bootstrapGallery(doc = document, win = window) {
         "leans in. slightly.",
         "eyes half closed.",
         "that spot, apparently.",
-        "a long, satisfied exhale."
+        "a long, satisfied exhale.",
+        "kneads the air, once.",
+        "chin up. go on.",
+        "the purr gets louder.",
+        "turns the other cheek."
       ]),
       dispatch: createRotator([
         "Contact made. Received well.",
         "Accepted without looking up.",
         "Chin, briefly. No objection.",
-        "Petted. Filed as routine."
+        "Petted. Filed as routine.",
+        "Ears scratched. Both of them.",
+        "Offered a cheek. Took it."
       ]),
       outcome: createRotator([
         "Purring, at low volume.",
         "Settled a little further in.",
-        "Nothing said. Nothing needed."
+        "Nothing said. Nothing needed.",
+        "Eyes closed. Not asleep.",
+        "Tail wrapped around paws."
       ]),
-      objective: createRotator(["Stay put.", "Keep the spot warm.", "Remain available."])
+      objective: createRotator(["Stay put.", "Keep the spot warm.", "Remain available.", "Continue, gently."])
     },
     tolerant: {
       face: "/ᐠ｡ꞈ｡ᐟ\\",
@@ -58,19 +66,26 @@ export function bootstrapGallery(doc = document, win = window) {
         "watching your hand.",
         "fine. briefly.",
         "a look, then nothing.",
-        "allowed. not invited."
+        "allowed. not invited.",
+        "the purr stops.",
+        "looks at the door.",
+        "a slow, careful blink."
       ]),
       dispatch: createRotator([
         "Allowed, under observation.",
         "Hand monitored throughout.",
-        "Permitted. Not encouraged."
+        "Permitted. Not encouraged.",
+        "Received. Not returned.",
+        "Contact noted, not welcomed."
       ]),
       outcome: createRotator([
         "Tail tip moving.",
         "Patience holding, for now.",
-        "Attention mostly elsewhere."
+        "Attention mostly elsewhere.",
+        "Still here. Undecided.",
+        "One eye on the exit."
       ]),
-      objective: createRotator(["Keep an eye on the hand.", "Reserve judgement."])
+      objective: createRotator(["Keep an eye on the hand.", "Reserve judgement.", "Wait and see."])
     },
     annoyed: {
       face: "(=｀ω´=)",
@@ -79,19 +94,26 @@ export function bootstrapGallery(doc = document, win = window) {
         "the tail is going.",
         "a paw on your wrist.",
         "that was one too many.",
-        "a flat, level stare."
+        "a flat, level stare.",
+        "a short, sharp mrrp.",
+        "skin twitches.",
+        "turns to face you."
       ]),
       dispatch: createRotator([
         "Contact exceeded terms.",
         "Paw applied to wrist.",
-        "Pace of petting noted."
+        "Pace of petting noted.",
+        "Warning issued. Verbally.",
+        "Tail lashing on record."
       ]),
       outcome: createRotator([
         "No claws. This time.",
         "Grace period over.",
-        "Relocation under consideration."
+        "Relocation under consideration.",
+        "Teeth shown, not used.",
+        "Your hand has been noted."
       ]),
-      objective: createRotator(["Restore some distance.", "Slow down."])
+      objective: createRotator(["Restore some distance.", "Slow down.", "Let it cool off."])
     },
     asleep: {
       face: "/ᐠ_ ꞈ _ᐟ\\",
@@ -100,19 +122,26 @@ export function bootstrapGallery(doc = document, win = window) {
         "didn't wake.",
         "one paw twitches.",
         "a sigh. still asleep.",
-        "deeper, if anything."
+        "deeper, if anything.",
+        "whiskers flicker.",
+        "curls tighter.",
+        "a small snore."
       ]),
       dispatch: createRotator([
         "Petted while asleep.",
         "Contact made. No response.",
-        "Out cold."
+        "Out cold.",
+        "Stirred. Did not wake.",
+        "Dreaming. Legs involved."
       ]),
       outcome: createRotator([
         "Snoring, faintly.",
         "No memory of this will be kept.",
-        "Unavailable until further notice."
+        "Unavailable until further notice.",
+        "Warmer than before.",
+        "Still asleep."
       ]),
-      objective: createRotator(["Let it sleep.", "Keep your voice down."])
+      objective: createRotator(["Let it sleep.", "Keep your voice down.", "Tiptoe."])
     }
   };
 
@@ -151,22 +180,36 @@ export function bootstrapGallery(doc = document, win = window) {
       "she was already here.",
       "a sideways glance.",
       "rounder than before.",
-      "no comment from the branch."
+      "no comment from the branch.",
+      "tail flick. that's all.",
+      "she tilts her head.",
+      "a soft tsip.",
+      "feathers settle.",
+      "blinks, very small.",
+      "turns to face you. round.",
+      "shuffles along the branch.",
+      "wind. she holds on."
     ]),
     dispatch: createRotator([
       "Agent 002 acknowledged you.",
       "Greeting returned. Barely.",
       "One chirp, no context.",
       "She moved along the branch.",
-      "Eight grams, fully attentive."
+      "Eight grams, fully attentive.",
+      "Head tilted. Reason unclear.",
+      "A look from the branch.",
+      "She preened instead."
     ]),
     outcome: createRotator([
       "Still round.",
       "No further comment.",
       "Back to watching the window.",
-      "Roundness unchanged."
+      "Roundness unchanged.",
+      "Slightly fluffier.",
+      "Grip on the branch firm.",
+      "Nothing else to report."
     ]),
-    objective: createRotator(["Stay round.", "Hold the branch.", "Watch the window."])
+    objective: createRotator(["Stay round.", "Hold the branch.", "Watch the window.", "Keep warm."])
   };
 
   // Fires instead of the usual line when the other agent was engaged moments ago. This
