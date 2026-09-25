@@ -1,11 +1,13 @@
 import {
   FLOCK_CAP,
+  MOOD_STICKERS,
+  QUICK_TAP_MS,
   advanceSecretTrackers,
-  applyMilestones,
   countUnlockedStickers,
   createDefaultState,
   createRotator,
   mergeStoredState,
+  nextCatMood,
   registerVisit,
   resolveSeason,
   resolveTimeBucket,
@@ -21,52 +23,97 @@ export function bootstrapGallery(doc = document, win = window) {
   const timeBucket = resolveTimeBucket(now);
   const season = resolveSeason(now);
 
-  const pettingMoods = [
-    { face: "(=^ ◡ ^=)", msg: "yes. this is acceptable." },
-    { face: "/ᐠ｡ꞈ｡ᐟ\\", msg: "you may continue." },
-    { face: "(=｀ω´=)", msg: "we have discussed personal space." },
-    { face: "/ᐠ_ ꞈ _ᐟ\\", msg: "the exhibition is now closed. zzz." }
-  ];
-
-  // Every cell that a repeated click can land on draws from a pool, because the dossier
+  // Every cell a repeated tap can land on draws from a pool, because the dossier
   // rendering the text it already held is indistinguishable from a dropped click. The
-  // rungs still escalate on their old schedule; only the wording inside one varies.
-  const petDispatch = createRotator([
-    "Treat approved by the recipient.",
-    "One treat, signed for.",
-    "Payment taken at the door.",
-    "Another treat clears without review."
-  ]);
-
-  const petOutcome = {
-    early: createRotator([
-      "Payment accepted. No receipt issued.",
-      "Accepted. Filed under expected.",
-      "Received without comment."
-    ]),
-    boundary: createRotator([
-      "A boundary has been mentioned.",
-      "The subject of space has come up.",
-      "A limit was raised, politely, once."
-    ]),
-    asleep: createRotator([
-      "Asleep. Will resume never.",
-      "Asleep. No handover written.",
-      "Out of office. Indefinitely."
-    ])
-  };
-
-  const petObjective = {
-    awake: createRotator([
-      "Secure another round.",
-      "Line up the next one.",
-      "Keep the supply moving."
-    ]),
-    asleep: createRotator([
-      "Remain unavailable.",
-      "Stay unreachable.",
-      "Continue to be elsewhere."
-    ])
+  // voice is observational: say what the animal did, and let the reader supply the joke.
+  // Speech lines stay under ~28 characters; the bubble is two lines wide on a phone.
+  const catMoods = {
+    content: {
+      face: "(=^ ◡ ^=)",
+      speech: createRotator([
+        "slow blink.",
+        "a small purr, then none.",
+        "leans in. slightly.",
+        "eyes half closed.",
+        "that spot, apparently.",
+        "a long, satisfied exhale."
+      ]),
+      dispatch: createRotator([
+        "Contact made. Received well.",
+        "Accepted without looking up.",
+        "Chin, briefly. No objection.",
+        "Petted. Filed as routine."
+      ]),
+      outcome: createRotator([
+        "Purring, at low volume.",
+        "Settled a little further in.",
+        "Nothing said. Nothing needed."
+      ]),
+      objective: createRotator(["Stay put.", "Keep the spot warm.", "Remain available."])
+    },
+    tolerant: {
+      face: "/ᐠ｡ꞈ｡ᐟ\\",
+      speech: createRotator([
+        "one ear turns away.",
+        "watching your hand.",
+        "fine. briefly.",
+        "a look, then nothing.",
+        "allowed. not invited."
+      ]),
+      dispatch: createRotator([
+        "Allowed, under observation.",
+        "Hand monitored throughout.",
+        "Permitted. Not encouraged."
+      ]),
+      outcome: createRotator([
+        "Tail tip moving.",
+        "Patience holding, for now.",
+        "Attention mostly elsewhere."
+      ]),
+      objective: createRotator(["Keep an eye on the hand.", "Reserve judgement."])
+    },
+    annoyed: {
+      face: "(=｀ω´=)",
+      speech: createRotator([
+        "ears back.",
+        "the tail is going.",
+        "a paw on your wrist.",
+        "that was one too many.",
+        "a flat, level stare."
+      ]),
+      dispatch: createRotator([
+        "Contact exceeded terms.",
+        "Paw applied to wrist.",
+        "Pace of petting noted."
+      ]),
+      outcome: createRotator([
+        "No claws. This time.",
+        "Grace period over.",
+        "Relocation under consideration."
+      ]),
+      objective: createRotator(["Restore some distance.", "Slow down."])
+    },
+    asleep: {
+      face: "/ᐠ_ ꞈ _ᐟ\\",
+      speech: createRotator([
+        "asleep.",
+        "didn't wake.",
+        "one paw twitches.",
+        "a sigh. still asleep.",
+        "deeper, if anything."
+      ]),
+      dispatch: createRotator([
+        "Petted while asleep.",
+        "Contact made. No response.",
+        "Out cold."
+      ]),
+      outcome: createRotator([
+        "Snoring, faintly.",
+        "No memory of this will be kept.",
+        "Unavailable until further notice."
+      ]),
+      objective: createRotator(["Let it sleep.", "Keep your voice down."])
+    }
   };
 
   // The dossier's opening triplet. Morning matches the markup in index.html, so the
@@ -94,96 +141,70 @@ export function bootstrapGallery(doc = document, win = window) {
     }
   };
 
-  // Agent 002 escalates on the persisted greet count, so a relationship accumulates
-  // across visits rather than resetting. Rung 0 is the first-ever greeting. Each rung's
-  // first pooled line is its canonical one, so the ladder still reads in order.
-  const greetingMoods = [
-    {
-      msg: "a second opinion has arrived.",
-      dispatch: createRotator([
-        "Agent 002 joined without invitation.",
-        "Agent 002 present. No invitation located.",
-        "A second opinion arrived under its own power."
-      ]),
-      outcome: createRotator([
-        "Morale increased beyond measurable limits.",
-        "Morale up. Instruments unhelpful.",
-        "Measurably better. Not measurably why."
-      ]),
-      objective: createRotator(["Protect the round one.", "Keep the round one round."])
-    },
-    {
-      msg: "agent 002 declines to elaborate.",
-      dispatch: createRotator([
-        "Second opinion filed. Unread.",
-        "Second opinion filed. Nobody opened it.",
-        "Filed without a summary. As usual."
-      ]),
-      outcome: createRotator([
-        "Round. Still round.",
-        "Roundness holding.",
-        "No change. The change was not requested."
-      ]),
-      objective: createRotator(["Maintain the round one.", "Preserve current roundness."])
-    },
-    {
-      msg: "the small one has opinions about the schedule.",
-      dispatch: createRotator([
-        "Agenda revised without consultation.",
-        "The schedule was amended overnight.",
-        "Calendar edited by a bird."
-      ]),
-      outcome: createRotator([
-        "Revision accepted unanimously. One vote cast.",
-        "Carried unanimously. Turnout was one.",
-        "Approved by the only attendee."
-      ]),
-      objective: createRotator(["Defer to the smaller authority.", "Let the small one decide."])
-    },
-    {
-      msg: "a working arrangement, apparently.",
-      dispatch: createRotator([
-        "Joint operations continuing indefinitely.",
-        "Joint operations renewed automatically.",
-        "The arrangement continues. Nobody drafted it."
-      ]),
-      outcome: createRotator([
-        "No end date proposed. None requested.",
-        "Open-ended by omission.",
-        "Termination clause never written."
-      ]),
-      objective: createRotator(["Continue as established.", "Keep doing whatever this is."])
-    }
-  ];
+  // Agent 002 has no ladder: each greeting is its own small event. Her first line is
+  // the pool's first entry, so a first visit still meets her the same way.
+  const birdGreeting = {
+    speech: createRotator([
+      "she fluffs up.",
+      "a tiny chirp.",
+      "hops once. sideways.",
+      "she was already here.",
+      "a sideways glance.",
+      "rounder than before.",
+      "no comment from the branch."
+    ]),
+    dispatch: createRotator([
+      "Agent 002 acknowledged you.",
+      "Greeting returned. Barely.",
+      "One chirp, no context.",
+      "She moved along the branch.",
+      "Eight grams, fully attentive."
+    ]),
+    outcome: createRotator([
+      "Still round.",
+      "No further comment.",
+      "Back to watching the window.",
+      "Roundness unchanged."
+    ]),
+    objective: createRotator(["Stay round.", "Hold the branch.", "Watch the window."])
+  };
 
-  // Fires instead of the ladder when the other agent was engaged moments ago. This is
-  // the only place the two agents know about each other.
+  // Fires instead of the usual line when the other agent was engaged moments ago. This
+  // is the only place the two agents know about each other.
   const bothPresentGreeting = {
-    msg: "both agents accounted for.",
+    speech: createRotator([
+      "both of them, watching you.",
+      "the cat saw that.",
+      "two agents, one window."
+    ]),
     dispatch: createRotator([
       "Both agents present. Neither in charge.",
-      "Both on duty. No chain of command found.",
-      "Two agents, one sunbeam, no hierarchy."
+      "Both on duty. No chain of command.",
+      "Two agents, one sunbeam."
     ]),
     outcome: createRotator([
       "Full coverage. Of one sunbeam.",
-      "Coverage total. Area small.",
-      "Nothing is unattended. Nothing is happening."
+      "Nothing is happening, jointly.",
+      "They exchanged a look."
     ]),
     objective: createRotator(["Remain a set.", "Stay a matching pair."])
   };
 
   const bothPresentPetting = {
-    msg: "the small one is watching you do that.",
+    speech: createRotator([
+      "the small one is watching.",
+      "observed from the branch.",
+      "002 saw that."
+    ]),
     dispatch: createRotator([
-      "The treat handover had a witness.",
-      "A witness was present at the handover.",
-      "The transaction was observed from above."
+      "Petting had a witness.",
+      "Observed from the perch.",
+      "A witness was present."
     ]),
     outcome: createRotator([
       "Seen. No comment offered.",
-      "Observed. Comment withheld.",
-      "Noted from the perch. Nothing said."
+      "Noted from above. Nothing said.",
+      "Observed. Comment withheld."
     ])
   };
 
@@ -224,7 +245,6 @@ export function bootstrapGallery(doc = document, win = window) {
   const objective = doc.getElementById("objective");
   const dispatch = doc.getElementById("dispatch");
   const outcome = doc.getElementById("outcome");
-  const treatCount = doc.getElementById("treat-count");
   const laserBest = doc.getElementById("laser-best");
   const stickerProgress = doc.getElementById("sticker-progress");
   const stickerGallery = doc.getElementById("sticker-gallery");
@@ -257,7 +277,6 @@ export function bootstrapGallery(doc = document, win = window) {
     !objective ||
     !dispatch ||
     !outcome ||
-    !treatCount ||
     !laserBest ||
     !stickerProgress ||
     !stickerGallery ||
@@ -300,7 +319,7 @@ export function bootstrapGallery(doc = document, win = window) {
   let konamiIndex = 0;
   let secretTimeout = null;
   let incidentTimeout = null;
-  let petStreak = 0;
+  let catMood = "idle";
   let lastPetAt = 0;
   let lastGreetAt = 0;
   let petAnimationTimeout = null;
@@ -369,10 +388,6 @@ export function bootstrapGallery(doc = document, win = window) {
     }
   }
 
-  function checkMilestones() {
-    applyMilestones(state);
-  }
-
   function updateStickerGallery() {
     const cards = stickerGallery.querySelectorAll(".gallery-item");
     cards.forEach((card) => {
@@ -393,7 +408,6 @@ export function bootstrapGallery(doc = document, win = window) {
   }
 
   function updateHud() {
-    treatCount.textContent = String(state.treats);
     laserBest.textContent = String(state.laserBest);
     stickerProgress.textContent = `${countUnlockedStickers(state)} OF ${totalStickers}`;
 
@@ -406,43 +420,37 @@ export function bootstrapGallery(doc = document, win = window) {
   }
 
   function render() {
-    checkMilestones();
     updateHud();
     updateStickerGallery();
     renderFlock();
   }
 
+  // Rare enough to be a sighting rather than a feature. Checked against the top of the
+  // range so a stubbed random() of 0 never produces it.
+  const STARE_CHANCE = 0.03;
+
   function petCat() {
-    state.treats += 1;
     const now = win.performance.now();
     const withCompany = engagedRecently(lastGreetAt, now);
-    if (now - lastPetAt > COMPANY_WINDOW_MS) {
-      petStreak = 0;
-    }
+    const quick = lastPetAt > 0 && now - lastPetAt < QUICK_TAP_MS;
     lastPetAt = now;
-    const mood = pettingMoods[Math.min(Math.floor(petStreak / 3), pettingMoods.length - 1)];
-    petStreak += 1;
+    catMood = nextCatMood(catMood, quick);
+    const mood = catMoods[catMood];
+
     kaomoji.textContent = mood.face;
-    speech.textContent = mood.msg;
-    if (petStreak === 17) {
+    speech.textContent = withCompany ? bothPresentPetting.speech() : mood.speech();
+    if (catMood !== "asleep" && Math.random() > 1 - STARE_CHANCE) {
       kaomoji.textContent = "(=ↀωↀ=)";
-      speech.textContent = "something only cats can see.";
-    } else if (withCompany) {
-      speech.textContent = bothPresentPetting.msg;
+      speech.textContent = "staring at nothing. intently.";
     }
     if (withCompany) {
-      updateDossier(
-        bothPresentPetting.dispatch(),
-        bothPresentPetting.outcome(),
-        "Operate as a pair."
-      );
+      updateDossier(bothPresentPetting.dispatch(), bothPresentPetting.outcome(), "Operate as a pair.");
     } else {
-      const rung = petStreak >= 10 ? "asleep" : petStreak >= 7 ? "boundary" : "early";
-      updateDossier(
-        petDispatch(),
-        petOutcome[rung](),
-        petStreak >= 10 ? petObjective.asleep() : petObjective.awake()
-      );
+      updateDossier(mood.dispatch(), mood.outcome(), mood.objective());
+    }
+    const sticker = MOOD_STICKERS[catMood];
+    if (sticker) {
+      unlockSticker(sticker);
     }
     if (!reducedMotion.matches) {
       win.clearTimeout(petAnimationTimeout);
@@ -476,13 +484,13 @@ export function bootstrapGallery(doc = document, win = window) {
     // Once she delegates, her forecasts carry a sub-agent's byline. The byline already
     // existed, so the whole joke costs one string.
     const byline =
-      fromBird && state.greets >= DELEGATION_AFTER_GREETS && state.flock > 0
+      fromBird && state.flock > 0 && Math.random() < DELEGATION_CHANCE
         ? subAgentName(1 + Math.floor(Math.random() * state.flock))
         : fortune.from;
     fortuneSource.textContent = `FORECAST · AGENT ${byline}`;
     fortuneBox.hidden = false;
     fortuneBtn.setAttribute("aria-expanded", "true");
-    speech.textContent = fromBird ? "the small one consulted the weather." : "the oracle has spoken.";
+    speech.textContent = fromBird ? "the small one checked the sky." : "001 has a feeling.";
     updateDossier(
       fromBird ? "The small one filed a forecast." : "Forecast filed. Nobody asked for one.",
       fortune.text,
@@ -568,7 +576,7 @@ export function bootstrapGallery(doc = document, win = window) {
 
     if (laserGame.score >= LASER_UNLOCK_SCORE) {
       laserStatus.textContent = "A distinguished dot catcher.";
-      speech.textContent = "you caught the dot!";
+      speech.textContent = "the dot is handled.";
       unlockSticker("laser");
       updateDossier(
         "The dot has been dealt with.",
@@ -577,7 +585,7 @@ export function bootstrapGallery(doc = document, win = window) {
       );
     } else {
       laserStatus.textContent = "The dot has other appointments.";
-      speech.textContent = "we shall pretend that never happened.";
+      speech.textContent = "the dot will be back.";
       updateDossier(
         "The dot has been dealt with.",
         "The dot escaped. This is being called a success.",
@@ -649,9 +657,14 @@ export function bootstrapGallery(doc = document, win = window) {
 
   heroCat.addEventListener("click", petCat);
 
-  // Once the ladder is finished she stops answering and files the request onward. The
-  // way a small agent becomes a large one is not by getting bigger.
-  const DELEGATION_AFTER_GREETS = greetingMoods.length * 3;
+  // Once she has sub-agents she sometimes files the request onward instead of
+  // answering. The way a small agent becomes a large one is not by getting bigger.
+  const DELEGATION_CHANCE = 0.35;
+  const delegationSpeech = createRotator([
+    "she has people for this.",
+    "passed down the branch.",
+    "handed to a sub-agent."
+  ]);
 
   function renderFlock() {
     if (flockEl.childElementCount === state.flock) {
@@ -689,28 +702,26 @@ export function bootstrapGallery(doc = document, win = window) {
   function greetAgentTwo() {
     const now = win.performance.now();
     const withCompany = engagedRecently(lastPetAt, now);
+    // She answers the first greeting of a visit herself. Delegating it would mean a
+    // first-time visitor's first tap on her reports only a sub-agent they have not met.
+    const firstThisVisit = lastGreetAt === 0;
     lastGreetAt = now;
 
-    const delegating = state.greets >= DELEGATION_AFTER_GREETS && state.flock > 0;
-    state.greets += 1;
-
-    if (delegating && !withCompany) {
-      const filing = delegate();
-      speech.textContent =
-        state.flock >= FLOCK_CAP
-          ? "recursion limit reached. the branch is full."
-          : "she has people for this now.";
-      updateDossier(filing.dispatch, filing.outcome, filing.objective);
-      saveState();
+    if (withCompany) {
+      speech.textContent = bothPresentGreeting.speech();
+      updateDossier(bothPresentGreeting.dispatch(), bothPresentGreeting.outcome(), bothPresentGreeting.objective());
       return;
     }
 
-    const rung = Math.min(Math.floor((state.greets - 1) / 3), greetingMoods.length - 1);
-    const mood = withCompany ? bothPresentGreeting : greetingMoods[rung];
+    if (!firstThisVisit && state.flock > 0 && Math.random() < DELEGATION_CHANCE) {
+      const filing = delegate();
+      speech.textContent = state.flock >= FLOCK_CAP ? "the branch is full." : delegationSpeech();
+      updateDossier(filing.dispatch, filing.outcome, filing.objective);
+      return;
+    }
 
-    speech.textContent = mood.msg;
-    updateDossier(mood.dispatch(), mood.outcome(), mood.objective());
-    saveState();
+    speech.textContent = birdGreeting.speech();
+    updateDossier(birdGreeting.dispatch(), birdGreeting.outcome(), birdGreeting.objective());
   }
 
   shimaenaga.addEventListener("click", () => {
@@ -824,7 +835,7 @@ export function bootstrapGallery(doc = document, win = window) {
         doc.body.classList.remove("chaos-igniting");
       }, 900);
       unlockSticker("chaos");
-      speech.textContent = "this is why museums have rules.";
+      speech.textContent = "something fell. on purpose.";
       updateDossier(
         "One incident, self-authorized.",
         "Everything is where it landed.",
@@ -833,7 +844,7 @@ export function bootstrapGallery(doc = document, win = window) {
     } else {
       win.clearTimeout(incidentTimeout);
       doc.body.classList.remove("chaos-igniting");
-      speech.textContent = "calm restored";
+      speech.textContent = "tidied. mostly.";
       updateDossier(
         "The evidence has been lined up neatly.",
         "The incident is now intentional.",
@@ -895,7 +906,7 @@ export function bootstrapGallery(doc = document, win = window) {
       resetArmed = true;
       resetBtn.textContent = "Confirm disappearance";
       resetBtn.classList.add("confirming");
-      resetStatus.textContent = "This clears treats, scores, incidents, and discoveries.";
+      resetStatus.textContent = "This clears scores, incidents, and discoveries.";
       resetConfirmTimeout = win.setTimeout(() => disarmReset(), 6000);
       return;
     }
@@ -905,11 +916,11 @@ export function bootstrapGallery(doc = document, win = window) {
     doc.body.classList.remove("chaos-igniting");
     state = createDefaultState();
     previousUnlocked = new Set();
-    petStreak = 0;
+    catMood = "idle";
     lastPetAt = 0;
     lastGreetAt = 0;
     kaomoji.textContent = "/ᐠ｡ꞈ｡ᐟ\\";
-    speech.textContent = "the evidence has been professionally misplaced.";
+    speech.textContent = "as if nothing happened.";
     updateDossier(
       "Records misplaced. Convincingly.",
       "Nothing on file. Excellent work.",

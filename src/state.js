@@ -21,8 +21,6 @@ export const VISIT_GAP_MS = 30 * 60 * 1000;
 
 export function createDefaultState() {
   return {
-    treats: 0,
-    greets: 0,
     laserBest: 0,
     chaos: false,
     flock: 0,
@@ -70,11 +68,13 @@ export function mergeStoredState(raw) {
       return defaults;
     }
 
+    // Older payloads carry treat and greet counts. Nothing reads them any more, so they
+    // are dropped here rather than written back on every save forever.
+    const { treats: _treats, greets: _greets, ...rest } = parsed;
+
     return {
       ...defaults,
-      ...parsed,
-      treats: Number.isFinite(parsed.treats) ? parsed.treats : defaults.treats,
-      greets: Number.isFinite(parsed.greets) ? parsed.greets : defaults.greets,
+      ...rest,
       laserBest: Number.isFinite(parsed.laserBest) ? parsed.laserBest : defaults.laserBest,
       chaos: typeof parsed.chaos === "boolean" ? parsed.chaos : defaults.chaos,
       // Clamped on read, not only on write: a hand-edited or older payload must not be
@@ -97,26 +97,53 @@ export function mergeStoredState(raw) {
   }
 }
 
-export function applyMilestones(state) {
-  const unlocked = [];
+// Agent 001 has a mood rather than a counter. Each tap moves it along this table, so
+// what a tap does depends on how the cat is and how fast you are, never on how many
+// taps came before. Quick taps lean toward annoyance; slow ones toward calm or sleep.
+// Each row is [mood, weight]; with random() at 0 the first entry wins.
+export const QUICK_TAP_MS = 900;
 
-  if (state.treats >= 10 && !state.stickers.greeting) {
-    state.stickers.greeting = true;
-    unlocked.push("greeting");
+const MOOD_TABLE = {
+  idle: { slow: [["content", 1]], quick: [["content", 1]] },
+  content: {
+    slow: [["content", 0.5], ["tolerant", 0.3], ["asleep", 0.2]],
+    quick: [["tolerant", 0.6], ["content", 0.4]]
+  },
+  tolerant: {
+    slow: [["content", 0.5], ["tolerant", 0.3], ["asleep", 0.2]],
+    quick: [["annoyed", 0.6], ["tolerant", 0.4]]
+  },
+  annoyed: {
+    slow: [["tolerant", 0.5], ["content", 0.3], ["annoyed", 0.2]],
+    quick: [["annoyed", 0.8], ["tolerant", 0.2]]
+  },
+  asleep: {
+    slow: [["asleep", 0.5], ["content", 0.5]],
+    quick: [["asleep", 0.6], ["annoyed", 0.4]]
   }
+};
 
-  if (state.treats >= 25 && !state.stickers.anger) {
-    state.stickers.anger = true;
-    unlocked.push("anger");
+export const CAT_MOODS = Object.keys(MOOD_TABLE).filter((mood) => mood !== "idle");
+
+export function nextCatMood(mood, quick, random = Math.random) {
+  const row = (MOOD_TABLE[mood] || MOOD_TABLE.idle)[quick ? "quick" : "slow"];
+  let roll = random();
+  for (const [next, weight] of row) {
+    if (roll < weight) {
+      return next;
+    }
+    roll -= weight;
   }
-
-  if (state.treats >= 50 && !state.stickers.doze) {
-    state.stickers.doze = true;
-    unlocked.push("doze");
-  }
-
-  return unlocked;
+  return row[row.length - 1][0];
 }
+
+// The three stickers that used to sit behind treat thresholds now mark the first time
+// the cat is seen in each mood.
+export const MOOD_STICKERS = {
+  content: "greeting",
+  annoyed: "anger",
+  asleep: "doze"
+};
 
 export function countUnlockedStickers(state) {
   return Object.values(state.stickers || {}).filter(Boolean).length;
